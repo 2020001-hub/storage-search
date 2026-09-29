@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>収納・蔵書検索システム</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --border-color: #cbd5e1;
+      --accent-color: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-light: #e0e7ff;
+      --accent-text: #3730a3;
+      
+      --card-radius: 8px;
+      --btn-radius: 6px;
+      --input-radius: 6px;
+      --grid-radius: 4px;
+      --badge-radius: 4px;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --border-color: #334155;
+      --accent-color: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-light: #312e81;
+      --accent-text: #e0e7ff;
+    }
+
+    [data-theme="green"] {
+      --bg-primary: #f0fdf4;
+      --bg-card: #ffffff;
+      --text-main: #064e3b;
+      --text-sub: #047857;
+      --border-color: #bbf7d0;
+      --accent-color: #059669;
+      --accent-hover: #047857;
+      --accent-light: #d1fae5;
+      --accent-text: #065f46;
+    }
+
+    [data-theme="purple"] {
+      --bg-primary: #faf5ff;
+      --bg-card: #ffffff;
+      --text-main: #581c87;
+      --text-sub: #7e22ce;
+      --border-color: #e9d5ff;
+      --accent-color: #9333ea;
+      --accent-hover: #7e22ce;
+      --accent-light: #f3e8ff;
+      --accent-text: #6b21a8;
+    }
+
+    [data-theme="mono"] {
+      --bg-primary: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #111827;
+      --text-sub: #4b5563;
+      --border-color: #d1d5db;
+      --accent-color: #374151;
+      --accent-hover: #1f2937;
+      --accent-light: #e5e7eb;
+      --accent-text: #111827;
+    }
+
+    [data-theme="warm"] {
+      --bg-primary: #fffbeb;
+      --bg-card: #ffffff;
+      --text-main: #78350f;
+      --text-sub: #92400e;
+      --border-color: #fde68a;
+      --accent-color: #d97706;
+      --accent-hover: #b45309;
+      --accent-light: #fef3c7;
+      --accent-text: #78350f;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .ui-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--card-radius);
+    }
+
+    .ui-input {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: var(--input-radius);
+    }
+
+    .ui-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .ui-btn {
+      border-radius: var(--btn-radius);
+    }
+
+    .ui-btn-accent {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border-radius: var(--btn-radius);
+    }
+
+    .ui-btn-accent:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .ui-badge {
+      border-radius: var(--badge-radius);
+      background-color: var(--accent-light);
+      color: var(--accent-text);
+    }
+
+    .grid-cell-btn {
+      border-radius: var(--grid-radius);
+    }
+
+    @keyframes flashHighlight {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: #fde047; }
+    }
+    .cell-flash {
+      animation: flashHighlight 0.6s ease-in-out 3;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen p-3 md:p-4 gap-3">
+
+  <header class="ui-card p-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <div class="flex items-center gap-3">
+      <h1 class="text-base font-bold tracking-tight">収納・蔵書検索システム</h1>
+      
+      <!-- 拠点選択 -->
+      <div class="flex items-center gap-1.5 text-xs bg-slate-100 p-1 border border-slate-200 rounded-[6px]">
+        <span class="text-slate-600 font-medium px-1">拠点:</span>
+        <select id="hubSelect" onchange="changeHub(this.value)" class="bg-white border border-slate-200 rounded-[4px] px-2 py-0.5 font-bold text-slate-800 cursor-pointer">
+        </select>
+        <button onclick="addNewHub()" class="px-2 py-0.5 bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-700 rounded-[4px]" title="新しい拠点を取り追加">+</button>
+        <button onclick="deleteCurrentHub()" class="px-2 py-0.5 bg-white border border-slate-200 hover:bg-slate-50 font-bold text-red-600 rounded-[4px]" title="選択中の拠点を削除">-</button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs">
+      <!-- カラーテーマ切替 -->
+      <select id="themeSelect" onchange="changeTheme(this.value)" class="ui-input px-2 py-1 font-medium cursor-pointer">
+        <option value="default">テーマ: デフォルト</option>
+        <option value="dark">テーマ: ダーク</option>
+        <option value="green">テーマ: グリーン</option>
+        <option value="purple">テーマ: パープル</option>
+        <option value="mono">テーマ: モノクロ</option>
+        <option value="warm">テーマ: ウォーム</option>
+      </select>
+
+      <!-- CSVバックアップ -->
+      <button onclick="exportCSV()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border border-slate-300 rounded-[6px]">
+        ファイルに保存
+      </button>
+      <label class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border border-slate-300 rounded-[6px] cursor-pointer">
+        保存ファイルから戻す
+        <input type="file" accept=".csv" onchange="importCSV(event)" class="hidden">
+      </label>
+
+      <!-- 初期化ボタン -->
+      <button onclick="openResetModal()" class="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-medium border border-red-200 rounded-[6px]">
+        選択中の場所を初期化
+      </button>
+    </div>
+  </header>
+
+  <nav class="grid grid-cols-2 gap-2 shrink-0">
+    <button id="tabBtn-search" onclick="switchMainTab('search')" class="py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm">
+      検索
+    </button>
+    <button id="tabBtn-manage" onclick="switchMainTab('manage')" class="py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50">
+      登録・管理
+    </button>
+  </nav>
+
+  <main id="view-search" class="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+    
+    <!-- 検索用サブタブ -->
+    <div class="ui-card p-3 flex flex-col gap-3 shrink-0">
+      <div class="flex border-b border-slate-200 pb-2 gap-2">
+        <button id="searchSubTabBtn-keyword" onclick="switchSearchSubTab('keyword')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white">キーワード検索</button>
+        <button id="searchSubTabBtn-location" onclick="switchSearchSubTab('location')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100">場所で検索</button>
+      </div>
+
+      <!-- サブタブ1: キーワード検索のコントロールパネル -->
+      <div id="searchControls-keyword" class="space-y-2">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+          <div class="md:col-span-6">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">キーワード検索（名称・棚コード・メモなど/かなカナ対応）</label>
+            <input type="text" id="keywordSearchInput" oninput="renderKeywordSearchResults()" placeholder="検索キーワードを入力" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">カテゴリ絞り込み</label>
+            <select id="searchCategoryFilter" onchange="renderKeywordSearchResults()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="">全カテゴリ</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">タグ絞り込み</label>
+            <select id="searchTagFilter" onchange="renderKeywordSearchResults()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="">全タグ</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+          <label class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
+            <input type="checkbox" id="recentOnlyFilter" onchange="renderKeywordSearchResults()" class="rounded text-indigo-600">
+            直近7日以内に追加した物品のみ表示
+          </label>
+
+          <button onclick="clearSearchFilters()" class="text-[11px] text-slate-500 hover:text-slate-800 underline">
+            検索条件をクリア
+          </button>
+        </div>
+      </div>
+
+      <!-- サブタブ2: 場所で検索のコントロールパネル -->
+      <div id="searchControls-location" class="space-y-2 hidden">
+        <div id="alphabetButtons" class="flex flex-wrap gap-1">
+        </div>
+
+        <div class="p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 flex-1">
+            <span id="selectedAreaBadge" class="font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-[4px]">エリア: A</span>
+            <input type="text" id="areaNameInput" placeholder="例: リビング棚" class="flex-1 px-2 py-1 text-xs ui-input">
+          </div>
+          <button onclick="saveCurrentAreaName()" class="px-3 py-1 ui-btn-accent font-bold text-xs shrink-0">
+            場所名を保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 min-h-0 ui-card p-3 flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+        <h3 id="searchSectionTitle" class="text-xs font-bold text-slate-700">検索結果一覧</h3>
+        <span id="searchSectionSubText" class="text-[10px] text-slate-500">条件に合う物品が表示されます</span>
+      </div>
+
+      <div id="keywordResultsContainer" class="flex-1 overflow-y-auto space-y-2 p-1">
+      </div>
+
+      <div id="shelfGridContainer" class="flex-1 overflow-y-auto hidden grid grid-cols-5 sm:grid-cols-9 md:grid-cols-11 gap-1.5 p-1">
+      </div>
+    </div>
+
+  </main>
+
+  <main id="view-manage" class="flex-1 min-h-0 hidden grid grid-cols-1 md:grid-cols-12 gap-3">
+    
+    <!-- 左カラム: フォーム領域 -->
+    <section class="md:col-span-5 ui-card p-4 flex flex-col justify-between overflow-y-auto">
+      <div class="space-y-3">
+        <div class="flex border-b border-slate-200 pb-2 gap-2">
+          <button id="subTabBtn-item" onclick="switchManageSubTab('item')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white">物品登録</button>
+          <button id="subTabBtn-category" onclick="switchManageSubTab('category')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100">カテゴリ登録</button>
+          <button id="subTabBtn-tag" onclick="switchManageSubTab('tag')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100">タグ登録</button>
+        </div>
+
+        <!-- 物品登録・編集フォーム -->
+        <form id="form-item" onsubmit="submitItemForm(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">物品名・書名 *</label>
+            <input type="text" id="itemNameInput" required placeholder="物品名を入力" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700">エリア (A-Z) *</label>
+              <select id="itemAreaSelect" onchange="updateShelfCodePreview()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700">棚番号 (1-99) *</label>
+              <input type="number" id="itemSlotInput" min="1" max="99" value="1" required oninput="updateShelfCodePreview()" class="w-full px-2 py-1.5 text-xs ui-input">
+            </div>
+          </div>
+
+          <div class="p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">棚コード表示:</span>
+            <span id="shelfCodePreview" class="ui-badge font-bold px-2 py-0.5 text-xs">A1</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700">カテゴリ</label>
+              <select id="itemCategorySelect" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700">数量</label>
+              <input type="number" id="itemQuantityInput" min="1" value="1" class="w-full px-2 py-1.5 text-xs ui-input">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">タグ</label>
+            <div id="itemTagCheckboxes" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-2 border border-slate-200 rounded-[6px] bg-slate-50">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">メモ</label>
+            <textarea id="itemMemoInput" rows="2" placeholder="メモを入力" class="w-full px-3 py-1.5 text-xs ui-input resize-none"></textarea>
+          </div>
+
+          <div class="flex gap-2">
+            <button type="submit" id="itemSubmitBtn" class="flex-1 py-2 ui-btn-accent font-bold text-xs shadow-sm">
+              物品を登録する
+            </button>
+            <button type="button" id="itemCancelEditBtn" onclick="cancelEditItem()" class="hidden px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-[6px]">
+              キャンセル
+            </button>
+          </div>
+        </form>
+
+        <!-- カテゴリ登録フォーム -->
+        <form id="form-category" onsubmit="submitCategoryForm(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">親カテゴリ（指定しない場合はトップ層）</label>
+            <select id="categoryParentSelect" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="">未設定 (ルートカテゴリ)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">新規カテゴリ名 *</label>
+            <input type="text" id="categoryNameInput" required placeholder="カテゴリ名を入力" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+          <button type="submit" class="w-full py-2 ui-btn-accent font-bold text-xs shadow-sm">
+            カテゴリを追加する
+          </button>
+        </form>
+
+        <!-- タグ登録フォーム -->
+        <form id="form-tag" onsubmit="submitTagForm(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700">新規タグ名 *</label>
+            <input type="text" id="tagNameInput" required placeholder="タグ名を入力" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+          <button type="submit" class="w-full py-2 ui-btn-accent font-bold text-xs shadow-sm">
+            タグを追加する
+          </button>
+        </form>
+
+      </div>
+    </section>
+
+    <!-- 右カラム: 登録済みリスト領域 -->
+    <section class="md:col-span-7 ui-card p-4 flex flex-col min-h-0 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+        <h2 id="rightColumnTitle" class="text-xs font-bold text-slate-700">登録アイテム一覧</h2>
+        <span id="registeredCountBadge" class="ui-badge text-[10px] font-bold px-2 py-0.5">0件</span>
+      </div>
+
+      <div id="rightListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- モーダル1: 棚マスダイレクトアクション -->
+  <div id="modalShelfAction" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 id="shelfActionTitle" class="text-xs font-bold text-slate-800">棚コード: A12</h3>
+        <button onclick="closeModal('modalShelfAction')" class="text-slate-400 hover:text-slate-600 font-bold text-xs">閉じる</button>
+      </div>
+      <p class="text-xs text-slate-600">実行する操作を選択してください。</p>
+      <div class="space-y-2 pt-1">
+        <button onclick="actionAddItemToShelf()" class="w-full py-2 ui-btn-accent font-bold text-xs">
+          ここに物品を追加
+        </button>
+        <button onclick="actionShowShelfItems()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 rounded-[6px]">
+          今ある物品を表示
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル2: 今ある物品の一覧表示 -->
+  <div id="modalShelfItems" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-md w-full p-4 flex flex-col max-h-[80vh] shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+        <h3 id="shelfItemsTitle" class="text-xs font-bold text-slate-800">保管物品一覧</h3>
+      </div>
+      <div id="shelfItemsList" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3">
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button onclick="closeModal('modalShelfItems')" class="px-4 py-1.5 border border-slate-300 rounded-[6px] text-slate-600 hover:bg-slate-50 font-bold text-xs">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル3: 場所初期化用安全確認モーダル -->
+  <div id="modalResetConfirm" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <h3 class="text-xs font-bold text-red-600 border-b border-red-100 pb-2">選択中の場所を初期化</h3>
+      <p id="resetConfirmText" class="text-xs text-slate-600 leading-relaxed">
+        現在の拠点データを初期化します。実行するには「削除」と入力してください。
+      </p>
+      <input type="text" id="resetInputShield" onkeyup="checkResetShieldInput()" placeholder="削除" class="w-full px-3 py-1.5 text-xs ui-input text-center">
+      <div class="flex gap-2 pt-1">
+        <button id="resetExecuteBtn" disabled onclick="executeHubReset()" class="flex-1 py-2 bg-red-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-[6px]">
+          実行
+        </button>
+        <button onclick="closeModal('modalResetConfirm')" class="px-3 py-2 border border-slate-300 rounded-[6px] text-slate-600 text-xs font-medium">
+          キャンセル
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル4: 棚コードラベル印刷プレビュー -->
+  <div id="modalPrintLabel" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="text-xs font-bold text-slate-800">ラベル印刷プレビュー</h3>
+        <button onclick="closeModal('modalPrintLabel')" class="text-slate-400 hover:text-slate-600 font-bold text-xs">閉じる</button>
+      </div>
+      <div class="border border-slate-800 rounded-[6px] p-3 bg-white text-slate-900 text-center space-y-1.5">
+        <div class="text-[9px] font-bold text-slate-400">STORAGE CODE</div>
+        <div id="printShelfCode" class="text-xl font-bold text-indigo-700">A12</div>
+        <div id="printItemName" class="text-xs font-bold border-t border-b border-slate-200 py-1">物品名</div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="window.print()" class="flex-1 py-2 ui-btn-accent font-bold text-xs">
+          印刷する
+        </button>
+        <button onclick="closeModal('modalPrintLabel')" class="px-3 py-2 border border-slate-300 rounded-[6px] text-slate-600 text-xs font-medium">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none"></div>
+
+  <script>
+    const safeStorage = {
+      getItem: function(key) {
+        try { return localStorage.getItem(key); }
+        catch (e) { return this._mem ? this._mem[key] : null; }
+      },
+      setItem: function(key, val) {
+        try { localStorage.setItem(key, val); }
+        catch (e) { if (!this._mem) this._mem = {}; this._mem[key] = val; }
+      }
+    };
+
+    let hubs = ['デフォルトの収納'];
+    let currentHub = 'デフォルトの収納';
+    let items = [];
+    let tags = [];
+    let categories = [];
+    let areaNames = {};
+    let currentSelectedArea = 'A';
+    let activeTargetSlot = null;
+    let lastDeletedItem = null;
+    let editingItemId = null;
+
+    let currentMainTab = 'search';
+    let currentSearchSubTab = 'keyword';
+    let currentManageSubTab = 'item';
+
+    window.onload = function() {
+      loadAllData();
+      initUI();
+    };
+
+    function loadAllData() {
+      try {
+        const h = safeStorage.getItem('storage_hubs');
+        if (h) hubs = JSON.parse(h);
+        const ch = safeStorage.getItem('storage_current_hub');
+        if (ch && hubs.includes(ch)) currentHub = ch;
+
+        const it = safeStorage.getItem(`storage_items_${currentHub}`);
+        items = it ? JSON.parse(it) : [];
+
+        const tg = safeStorage.getItem('storage_tags');
+        tags = tg ? JSON.parse(tg) : [];
+
+        const cat = safeStorage.getItem('storage_categories');
+        if (cat) {
+          const parsedCat = JSON.parse(cat);
+          categories = parsedCat.map(c => {
+            if (typeof c === 'string') {
+              return { id: c, name: c, parentId: '' };
+            }
+            return c;
+          });
+        } else {
+          categories = [];
+        }
+
+        const ar = safeStorage.getItem(`storage_areas_${currentHub}`);
+        areaNames = ar ? JSON.parse(ar) : {};
+
+        const th = safeStorage.getItem('storage_theme') || 'default';
+        changeTheme(th, false);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function saveAllData() {
+      safeStorage.setItem('storage_hubs', JSON.stringify(hubs));
+      safeStorage.setItem('storage_current_hub', currentHub);
+      safeStorage.setItem(`storage_items_${currentHub}`, JSON.stringify(items));
+      safeStorage.setItem('storage_tags', JSON.stringify(tags));
+      safeStorage.setItem('storage_categories', JSON.stringify(categories));
+      safeStorage.setItem(`storage_areas_${currentHub}`, JSON.stringify(areaNames));
+    }
+
+    function initUI() {
+      renderHubDropdown();
+      renderAreaSelectOptions();
+      renderTagCheckboxes();
+      renderCategorySelectOptions();
+      renderTagFilterOptions();
+      renderAlphabetButtons();
+      renderRightColumnList();
+      renderSearchSubTabContent();
+      updateAreaNameInput();
+    }
+
+    function getCategoryObj(id) {
+      if (!id) return null;
+      return categories.find(c => c.id === id || c.name === id) || null;
+    }
+
+    function getCategoryFullPath(id) {
+      const cat = getCategoryObj(id);
+      if (!cat) return id || '未設定';
+      if (cat.parentId) {
+        const parentPath = getCategoryFullPath(cat.parentId);
+        return parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+      }
+      return cat.name;
+    }
+
+    function getCategoryAndDescendantIds(targetId) {
+      const ids = [];
+      function collect(id) {
+        ids.push(id);
+        const catObj = getCategoryObj(id);
+        const actualId = catObj ? catObj.id : id;
+        categories.forEach(c => {
+          if (c.parentId === actualId) {
+            collect(c.id);
+          }
+        });
+      }
+      if (targetId) collect(targetId);
+      return ids;
+    }
+
+    window.switchMainTab = function(tab) {
+      currentMainTab = tab;
+      const btnSearch = document.getElementById('tabBtn-search');
+      const btnManage = document.getElementById('tabBtn-manage');
+      const viewSearch = document.getElementById('view-search');
+      const viewManage = document.getElementById('view-manage');
+
+      if (tab === 'search') {
+        btnSearch.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm';
+        btnManage.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50';
+        viewSearch.classList.remove('hidden');
+        viewManage.classList.add('hidden');
+        renderSearchSubTabContent();
+      } else {
+        btnManage.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm';
+        btnSearch.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50';
+        viewManage.classList.remove('hidden');
+        viewSearch.classList.add('hidden');
+      }
+    };
+
+    window.switchSearchSubTab = function(subTab) {
+      currentSearchSubTab = subTab;
+      const btnKeyword = document.getElementById('searchSubTabBtn-keyword');
+      const btnLocation = document.getElementById('searchSubTabBtn-location');
+      const controlsKeyword = document.getElementById('searchControls-keyword');
+      const controlsLocation = document.getElementById('searchControls-location');
+
+      if (subTab === 'keyword') {
+        btnKeyword.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+        btnLocation.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+        controlsKeyword.classList.remove('hidden');
+        controlsLocation.classList.add('hidden');
+      } else {
+        btnLocation.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+        btnKeyword.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+        controlsLocation.classList.remove('hidden');
+        controlsKeyword.classList.add('hidden');
+      }
+      renderSearchSubTabContent();
+    };
+
+    window.switchManageSubTab = function(sub) {
+      currentManageSubTab = sub;
+      ['item', 'category', 'tag'].forEach(s => {
+        const btn = document.getElementById(`subTabBtn-${s}`);
+        const form = document.getElementById(`form-${s}`);
+        if (s === sub) {
+          btn.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+          form.classList.remove('hidden');
+        } else {
+          btn.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+          form.classList.add('hidden');
+        }
+      });
+      renderRightColumnList();
+    };
+
+    window.changeTheme = function(theme, save = true) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('themeSelect').value = theme;
+      if (save) safeStorage.setItem('storage_theme', theme);
+    };
+
+    window.changeHub = function(hub) {
+      currentHub = hub;
+      safeStorage.setItem('storage_current_hub', hub);
+      loadAllData();
+      initUI();
+      showToast(`拠点「${hub}」に切り替えました`, 'info');
+    };
+
+    window.addNewHub = function() {
+      const name = prompt('新しい拠点名を入力してください:');
+      if (name && name.trim()) {
+        const trimmed = name.trim();
+        if (!hubs.includes(trimmed)) {
+          hubs.push(trimmed);
+          currentHub = trimmed;
+          saveAllData();
+          initUI();
+          showToast(`新しい拠点「${trimmed}」を作成しました`, 'success');
+        }
+      }
+    };
+
+    window.deleteCurrentHub = function() {
+      if (hubs.length <= 1) {
+        showToast('拠点情報は最低1つ必要です', 'error');
+        return;
+      }
+      if (!confirm(`拠点「${currentHub}」を削除しますか？\n（登録されていた物品データも削除されます）`)) {
+        return;
+      }
+      const deletedHub = currentHub;
+      hubs = hubs.filter(h => h !== deletedHub);
+      currentHub = hubs[0];
+      
+      try {
+        localStorage.removeItem(`storage_items_${deletedHub}`);
+        localStorage.removeItem(`storage_areas_${deletedHub}`);
+      } catch (e) {}
+
+      saveAllData();
+      loadAllData();
+      initUI();
+      showToast(`拠点「${deletedHub}」を削除しました`, 'success');
+    };
+
+    function renderHubDropdown() {
+      const select = document.getElementById('hubSelect');
+      select.innerHTML = '';
+      hubs.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        if (h === currentHub) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function getAreaName(area) {
+      return areaNames[area] || '';
+    }
+
+    function formatShelfCode(area, slot) {
+      const name = getAreaName(area);
+      return name ? `${area}${slot}(${name})` : `${area}${slot}`;
+    }
+
+    function renderAreaSelectOptions() {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      const select = document.getElementById('itemAreaSelect');
+      select.innerHTML = '';
+      letters.forEach(char => {
+        const opt = document.createElement('option');
+        opt.value = char;
+        const name = getAreaName(char);
+        opt.textContent = name ? `${char} (${name})` : char;
+        select.appendChild(opt);
+      });
+      select.value = currentSelectedArea;
+      updateShelfCodePreview();
+    }
+
+    window.updateShelfCodePreview = function() {
+      const area = document.getElementById('itemAreaSelect').value || 'A';
+      const slot = document.getElementById('itemSlotInput').value || 1;
+      document.getElementById('shelfCodePreview').textContent = formatShelfCode(area, slot);
+    };
+
+    function renderCategorySelectOptions() {
+      const selects = [
+        { el: document.getElementById('itemCategorySelect'), defaultText: '未設定' },
+        { el: document.getElementById('searchCategoryFilter'), defaultText: '全カテゴリ' },
+        { el: document.getElementById('categoryParentSelect'), defaultText: '未設定 (ルートカテゴリ)' }
+      ];
+
+      selects.forEach(s => {
+        if (!s.el) return;
+        const cur = s.el.value;
+        s.el.innerHTML = `<option value="">${s.defaultText}</option>`;
+        
+        function appendOptions(parentId, depth) {
+          const children = categories.filter(c => c.parentId === parentId);
+          children.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
+            opt.textContent = prefix + c.name;
+            s.el.appendChild(opt);
+            appendOptions(c.id, depth + 1);
+          });
+        }
+        appendOptions('', 0);
+        if (cur) s.el.value = cur;
+      });
+    }
+
+    function renderTagFilterOptions() {
+      const sel = document.getElementById('searchTagFilter');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">全タグ</option>';
+      tags.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+      if (cur) sel.value = cur;
+    }
+
+    function renderTagCheckboxes() {
+      const box = document.getElementById('itemTagCheckboxes');
+      box.innerHTML = '';
+      if (tags.length === 0) {
+        box.innerHTML = '<span class="text-[10px] text-slate-400">タグ未登録</span>';
+        return;
+      }
+      tags.forEach(t => {
+        const label = document.createElement('label');
+        label.className = 'inline-flex items-center gap-1 text-[11px] bg-white border border-slate-200 px-1.5 py-0.5 rounded-[4px] cursor-pointer';
+        label.innerHTML = `<input type="checkbox" value="${escapeHtml(t)}" class="item-tag-cb rounded text-indigo-600"> <span>${escapeHtml(t)}</span>`;
+        box.appendChild(label);
+      });
+    }
+
+    window.editItem = function(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      editingItemId = id;
+      switchMainTab('manage');
+      switchManageSubTab('item');
+
+      document.getElementById('itemNameInput').value = item.name;
+      document.getElementById('itemAreaSelect').value = item.area;
+      document.getElementById('itemSlotInput').value = item.slot;
+      document.getElementById('itemCategorySelect').value = item.category || '';
+      document.getElementById('itemQuantityInput').value = item.quantity || 1;
+      document.getElementById('itemMemoInput').value = item.memo || '';
+
+      const tagCBs = document.querySelectorAll('.item-tag-cb');
+      tagCBs.forEach(cb => {
+        cb.checked = item.tags && item.tags.includes(cb.value);
+      });
+
+      updateShelfCodePreview();
+
+      document.getElementById('itemSubmitBtn').textContent = '物品情報を更新する';
+      document.getElementById('itemCancelEditBtn').classList.remove('hidden');
+      document.getElementById('itemNameInput').focus();
+    };
+
+    window.cancelEditItem = function() {
+      editingItemId = null;
+      document.getElementById('itemNameInput').value = '';
+      document.getElementById('itemMemoInput').value = '';
+      document.getElementById('itemQuantityInput').value = 1;
+      document.getElementById('itemSlotInput').value = 1;
+      document.querySelectorAll('.item-tag-cb').forEach(cb => cb.checked = false);
+
+      document.getElementById('itemSubmitBtn').textContent = '物品を登録する';
+      document.getElementById('itemCancelEditBtn').classList.add('hidden');
+      updateShelfCodePreview();
+    };
+
+    window.submitItemForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('itemNameInput').value.trim();
+      const area = document.getElementById('itemAreaSelect').value;
+      const slot = parseInt(document.getElementById('itemSlotInput').value) || 1;
+      const category = document.getElementById('itemCategorySelect').value;
+      const quantity = parseInt(document.getElementById('itemQuantityInput').value) || 1;
+      const memo = document.getElementById('itemMemoInput').value.trim();
+
+      const selectedTags = Array.from(document.querySelectorAll('.item-tag-cb:checked')).map(cb => cb.value);
+
+      if (!name) return;
+
+      if (editingItemId) {
+        const idx = items.findIndex(i => i.id === editingItemId);
+        if (idx !== -1) {
+          items[idx] = {
+            ...items[idx],
+            name: name,
+            area: area,
+            slot: slot,
+            category: category,
+            quantity: quantity,
+            tags: selectedTags,
+            memo: memo
+          };
+          saveAllData();
+          renderRightColumnList();
+          renderSearchSubTabContent();
+          showToast(`「${name}」の情報を更新しました`, 'success');
+          cancelEditItem();
+        }
+      } else {
+        const item = {
+          id: Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+          name: name,
+          area: area,
+          slot: slot,
+          category: category,
+          quantity: quantity,
+          tags: selectedTags,
+          memo: memo,
+          createdAt: new Date().toISOString()
+        };
+
+        items.unshift(item);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(`「${name}」を ${formatShelfCode(area, slot)} に登録しました`, 'success');
+        
+        document.getElementById('itemNameInput').value = '';
+        document.getElementById('itemMemoInput').value = '';
+        document.querySelectorAll('.item-tag-cb').forEach(cb => cb.checked = false);
+      }
+    };
+
+    window.submitTagForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('tagNameInput').value.trim();
+      if (name && !tags.includes(name)) {
+        tags.push(name);
+        saveAllData();
+        renderTagCheckboxes();
+        renderTagFilterOptions();
+        renderRightColumnList();
+        document.getElementById('tagNameInput').value = '';
+        showToast(`タグ「${name}」を追加しました`, 'success');
+      }
+    };
+
+    window.submitCategoryForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('categoryNameInput').value.trim();
+      const parentId = document.getElementById('categoryParentSelect').value || '';
+
+      if (name) {
+        const exists = categories.some(c => c.name === name && c.parentId === parentId);
+        if (!exists) {
+          const newCategory = {
+            id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+            name: name,
+            parentId: parentId
+          };
+          categories.push(newCategory);
+          saveAllData();
+          renderCategorySelectOptions();
+          renderRightColumnList();
+          document.getElementById('categoryNameInput').value = '';
+          showToast(`カテゴリ「${name}」を追加しました`, 'success');
+        }
+      }
+    };
+
+    window.setParentCategoryAndFocus = function(parentId) {
+      switchManageSubTab('category');
+      document.getElementById('categoryParentSelect').value = parentId;
+      document.getElementById('categoryNameInput').focus();
+    };
+
+    function renderRightColumnList() {
+      const container = document.getElementById('rightListContainer');
+      const title = document.getElementById('rightColumnTitle');
+      const badge = document.getElementById('registeredCountBadge');
+      container.innerHTML = '';
+
+      if (currentManageSubTab === 'item') {
+        title.textContent = '登録アイテム一覧';
+        badge.textContent = `${items.length}件`;
+
+        if (items.length === 0) {
+          container.innerHTML = `
+            <div class="p-6 text-center text-slate-400 space-y-2">
+              <p class="font-bold text-xs">物品が登録されていません</p>
+              <p class="text-[11px]">左側のフォームから物品を登録してください。</p>
+            </div>`;
+          return;
+        }
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-2.5 bg-slate-50 border border-slate-200 rounded-[6px] space-y-1 text-xs';
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <span class="ui-badge font-bold px-2 py-0.5 text-[11px]">
+                ${formatShelfCode(item.area, item.slot)}
+              </span>
+              <span class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded-[4px] text-slate-600">
+                ${escapeHtml(getCategoryFullPath(item.category))}
+              </span>
+            </div>
+            <div class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</div>
+            ${item.memo ? `<div class="text-[11px] text-slate-500 bg-white p-1.5 rounded-[4px] border border-slate-100">${escapeHtml(item.memo)}</div>` : ''}
+            <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+              <span>数量: ${item.quantity}</span>
+              <div class="flex gap-2">
+                <button onclick="deleteItem('${item.id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">削除</button>
+              </div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+      } else if (currentManageSubTab === 'tag') {
+        title.textContent = '登録タグ一覧';
+        badge.textContent = `${tags.length}件`;
+        if (tags.length === 0) {
+          container.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center">登録されているタグはありません。</p>';
+          return;
+        }
+        tags.forEach(t => {
+          const div = document.createElement('div');
+          div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex justify-between items-center text-xs';
+          div.innerHTML = `<span>${escapeHtml(t)}</span> <button onclick="deleteTag('${escapeHtml(t)}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">削除</button>`;
+          container.appendChild(div);
+        });
+
+      } else if (currentManageSubTab === 'category') {
+        title.textContent = '登録カテゴリ一覧';
+        badge.textContent = `${categories.length}件`;
+        if (categories.length === 0) {
+          container.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center">登録されているカテゴリはありません。</p>';
+          return;
+        }
+
+        function renderCategoryTree(parentId, depth) {
+          const children = categories.filter(c => c.parentId === parentId);
+          children.forEach(c => {
+            const div = document.createElement('div');
+            const indentPx = depth * 16;
+            div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex justify-between items-center text-xs my-1';
+            div.style.marginLeft = `${indentPx}px`;
+            div.innerHTML = `
+              <div class="flex items-center gap-1.5">
+                ${depth > 0 ? '<span class="text-slate-400 font-bold">└</span>' : ''}
+                <span class="font-bold text-slate-800">${escapeHtml(c.name)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="setParentCategoryAndFocus('${c.id}')" class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-[4px]">子カテゴリを追加</button>
+                <button onclick="deleteCategory('${c.id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">削除</button>
+              </div>
+            `;
+            container.appendChild(div);
+            renderCategoryTree(c.id, depth + 1);
+          });
+        }
+        renderCategoryTree('', 0);
+      }
+    }
+
+    window.deleteItem = function(id) {
+      const idx = items.findIndex(i => i.id === id);
+      if (idx !== -1) {
+        lastDeletedItem = { item: items[idx], index: idx };
+        const name = items[idx].name;
+        items.splice(idx, 1);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(`「${name}」を削除しました`, 'undo');
+      }
+    };
+
+    window.undoDelete = function() {
+      if (lastDeletedItem) {
+        items.splice(lastDeletedItem.index, 0, lastDeletedItem.item);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(`「${lastDeletedItem.item.name}」を復元しました`, 'success');
+        lastDeletedItem = null;
+      }
+    };
+
+    window.deleteTag = function(t) {
+      tags = tags.filter(x => x !== t);
+      saveAllData();
+      renderTagCheckboxes();
+      renderTagFilterOptions();
+      renderRightColumnList();
+    };
+
+    window.deleteCategory = function(id) {
+      const descendantIds = getCategoryAndDescendantIds(id);
+      categories = categories.filter(x => !descendantIds.includes(x.id));
+      saveAllData();
+      renderCategorySelectOptions();
+      renderRightColumnList();
+    };
+
+    function renderAlphabetButtons() {
+      const box = document.getElementById('alphabetButtons');
+      box.innerHTML = '';
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(char => {
+        const btn = document.createElement('button');
+        btn.onclick = () => selectAlphabetArea(char);
+        const isActive = char === currentSelectedArea;
+        btn.className = `px-2 py-1 font-bold text-xs rounded-[4px] border ${isActive ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`;
+        btn.textContent = char;
+        box.appendChild(btn);
+      });
+    }
+
+    function selectAlphabetArea(char) {
+      currentSelectedArea = char;
+      renderAlphabetButtons();
+      updateAreaNameInput();
+      renderSearchSubTabContent();
+    }
+
+    function updateAreaNameInput() {
+      document.getElementById('selectedAreaBadge').textContent = `エリア: ${currentSelectedArea}`;
+      document.getElementById('areaNameInput').value = getAreaName(currentSelectedArea);
+    }
+
+    window.saveCurrentAreaName = function() {
+      const val = document.getElementById('areaNameInput').value.trim();
+      if (val) {
+        areaNames[currentSelectedArea] = val;
+      } else {
+        delete areaNames[currentSelectedArea];
+      }
+      saveAllData();
+      renderAreaSelectOptions();
+      updateAreaNameInput();
+      renderSearchSubTabContent();
+      showToast(`エリア ${currentSelectedArea} の場所名を保存しました`, 'success');
+    };
+
+    function normalizeKana(str) {
+      if (!str) return '';
+      return str.toLowerCase().replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+    }
+
+    window.clearSearchFilters = function() {
+      document.getElementById('keywordSearchInput').value = '';
+      document.getElementById('searchCategoryFilter').value = '';
+      document.getElementById('searchTagFilter').value = '';
+      document.getElementById('recentOnlyFilter').checked = false;
+      renderSearchSubTabContent();
+    };
+
+    function renderSearchSubTabContent() {
+      const keywordResultsContainer = document.getElementById('keywordResultsContainer');
+      const gridContainer = document.getElementById('shelfGridContainer');
+      const sectionTitle = document.getElementById('searchSectionTitle');
+      const sectionSubText = document.getElementById('searchSectionSubText');
+
+      if (currentSearchSubTab === 'keyword') {
+        gridContainer.classList.add('hidden');
+        keywordResultsContainer.classList.remove('hidden');
+
+        renderKeywordSearchResults();
+
+      } else if (currentSearchSubTab === 'location') {
+        keywordResultsContainer.classList.add('hidden');
+        gridContainer.classList.remove('hidden');
+
+        sectionTitle.textContent = `棚マス一覧 (${currentSelectedArea}1〜${currentSelectedArea}99) - ${getAreaName(currentSelectedArea) || '名称未設定'}`;
+        sectionSubText.textContent = '色付きマスは物品が登録されています';
+
+        gridContainer.innerHTML = '';
+        const slotCounts = {};
+        items.forEach(i => {
+          if (i.area === currentSelectedArea) {
+            slotCounts[i.slot] = (slotCounts[i.slot] || 0) + 1;
+          }
+        });
+
+        for (let s = 1; s <= 99; s++) {
+          const count = slotCounts[s] || 0;
+          const btn = document.createElement('button');
+          btn.id = `cell-${currentSelectedArea}-${s}`;
+          btn.onclick = () => openShelfActionModal(currentSelectedArea, s);
+
+          let colorStyle = 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100';
+          if (count === 1) colorStyle = 'bg-amber-100 border-amber-300 text-amber-900 font-bold';
+          if (count >= 2) colorStyle = 'bg-amber-500 border-amber-600 text-white font-bold';
+
+          btn.className = `p-1.5 border text-xs grid-cell-btn flex flex-col items-center justify-center min-h-[42px] transition-all ${colorStyle}`;
+          btn.innerHTML = `
+            <span class="text-[9px] opacity-70">${s}</span>
+            ${count > 0 ? `<span class="text-[11px] font-bold">${count}</span>` : ''}
+          `;
+          gridContainer.appendChild(btn);
+        }
+      }
+    }
+
+    function renderKeywordSearchResults() {
+      const query = normalizeKana(document.getElementById('keywordSearchInput').value.trim());
+      const catFilter = document.getElementById('searchCategoryFilter').value;
+      const tagFilter = document.getElementById('searchTagFilter').value;
+      const recentOnly = document.getElementById('recentOnlyFilter').checked;
+
+      const container = document.getElementById('keywordResultsContainer');
+      const sectionTitle = document.getElementById('searchSectionTitle');
+      const sectionSubText = document.getElementById('searchSectionSubText');
+
+      container.innerHTML = '';
+
+      const validCatIds = catFilter ? getCategoryAndDescendantIds(catFilter) : [];
+
+      let filtered = items.filter(i => {
+        const matchName = normalizeKana(i.name).includes(query);
+        const matchMemo = normalizeKana(i.memo).includes(query);
+        const matchCode = normalizeKana(`${i.area}${i.slot}`).includes(query);
+        const matchAreaName = normalizeKana(getAreaName(i.area)).includes(query);
+        const matchQuery = !query || matchName || matchMemo || matchCode || matchAreaName;
+
+        const matchCat = !catFilter || validCatIds.includes(i.category);
+        const matchTag = !tagFilter || (i.tags && i.tags.includes(tagFilter));
+
+        let matchRecent = true;
+        if (recentOnly) {
+          const diffMs = new Date() - new Date(i.createdAt);
+          matchRecent = diffMs < (7 * 24 * 60 * 60 * 1000);
+        }
+
+        return matchQuery && matchCat && matchTag && matchRecent;
+      });
+
+      sectionTitle.textContent = 'キーワード検索結果';
+      sectionSubText.textContent = `${filtered.length}件の物品が見つかりました`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center text-slate-400 space-y-1">
+            <p class="font-bold text-xs">該当する物品がありません</p>
+            <p class="text-[11px]">キーワードや絞り込み条件を変更してみてください。</p>
+          </div>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-slate-50 border border-slate-200 rounded-[6px] space-y-1 text-xs';
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="ui-badge font-bold px-2 py-0.5 text-[11px]">
+              ${formatShelfCode(item.area, item.slot)}
+            </span>
+            <div class="flex gap-1">
+              <button onclick="editItem('${item.id}')" class="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-[4px] font-bold hover:bg-amber-100">
+                編集
+              </button>
+              <button onclick="highlightCellOnGrid('${item.area}', ${item.slot})" class="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded-[4px] font-bold">
+                場所を表示
+              </button>
+            </div>
+          </div>
+          <div class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</div>
+          ${item.memo ? `<div class="text-[11px] text-slate-500 bg-white p-1 rounded-[4px] border border-slate-100">${escapeHtml(item.memo)}</div>` : ''}
+          ${item.tags && item.tags.length > 0 ? `<div class="flex flex-wrap gap-1 pt-0.5">${item.tags.map(t => `<span class="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-[3px]">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.highlightCellOnGrid = function(area, slot) {
+      switchSearchSubTab('location');
+      selectAlphabetArea(area);
+      setTimeout(() => {
+        const cell = document.getElementById(`cell-${area}-${slot}`);
+        if (cell) {
+          cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cell.classList.add('cell-flash');
+          setTimeout(() => cell.classList.remove('cell-flash'), 2000);
+        }
+      }, 100);
+    };
+
+    function openShelfActionModal(area, slot) {
+      activeTargetSlot = { area, slot };
+      document.getElementById('shelfActionTitle').textContent = `棚コード: ${formatShelfCode(area, slot)}`;
+      openModal('modalShelfAction');
+    }
+
+    window.actionAddItemToShelf = function() {
+      closeModal('modalShelfAction');
+      if (!activeTargetSlot) return;
+      switchMainTab('manage');
+      switchManageSubTab('item');
+      currentSelectedArea = activeTargetSlot.area;
+      renderAreaSelectOptions();
+      document.getElementById('itemSlotInput').value = activeTargetSlot.slot;
+      updateShelfCodePreview();
+      document.getElementById('itemNameInput').focus();
+    };
+
+    window.actionShowShelfItems = function() {
+      closeModal('modalShelfAction');
+      if (!activeTargetSlot) return;
+      const { area, slot } = activeTargetSlot;
+      const listContainer = document.getElementById('shelfItemsList');
+      document.getElementById('shelfItemsTitle').textContent = `保管物品一覧 - ${formatShelfCode(area, slot)}`;
+      listContainer.innerHTML = '';
+
+      const matched = items.filter(i => i.area === area && i.slot === slot);
+      if (matched.length === 0) {
+        listContainer.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center">この棚マスに保管されている物品はありません。</p>';
+      } else {
+        matched.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] text-xs space-y-1';
+          div.innerHTML = `
+            <div class="font-bold text-slate-800">${escapeHtml(item.name)}</div>
+            <div class="text-[10px] text-slate-500">数量: ${item.quantity} | カテゴリ: ${escapeHtml(getCategoryFullPath(item.category))}</div>
+          `;
+          listContainer.appendChild(div);
+        });
+      }
+      openModal('modalShelfItems');
+    };
+
+    window.openResetModal = function() {
+      document.getElementById('resetInputShield').value = '';
+      document.getElementById('resetExecuteBtn').disabled = true;
+      document.getElementById('resetConfirmText').innerHTML = `拠点 [<span class="font-bold text-slate-800">${currentHub}</span>] のすべての登録データを初期化します。<br>実行するには「削除」と入力してください。`;
+      openModal('modalResetConfirm');
+    };
+
+    window.checkResetShieldInput = function() {
+      const val = document.getElementById('resetInputShield').value.trim();
+      document.getElementById('resetExecuteBtn').disabled = (val !== '削除');
+    };
+
+    window.executeHubReset = function() {
+      items = [];
+      areaNames = {};
+      saveAllData();
+      initUI();
+      closeModal('modalResetConfirm');
+      showToast(`拠点「${currentHub}」のデータを初期化しました`, 'success');
+    };
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); };
+
+    function escapeCSVField(field) {
+      if (field === null || field === undefined) return '""';
+      const str = String(field);
+      if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return '"' + str + '"';
+    }
+
+    function parseCSV(text) {
+      const lines = [];
+      let row = [];
+      let inQuotes = false;
+      let field = '';
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const nextC = text[i + 1];
+
+        if (inQuotes) {
+          if (c === '"') {
+            if (nextC === '"') {
+              field += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            field += c;
+          }
+        } else {
+          if (c === '"') {
+            inQuotes = true;
+          } else if (c === ',') {
+            row.push(field);
+            field = '';
+          } else if (c === '\r') {
+          } else if (c === '\n') {
+            row.push(field);
+            lines.push(row);
+            row = [];
+            field = '';
+          } else {
+            field += c;
+          }
+        }
+      }
+      if (field !== '' || row.length > 0) {
+        row.push(field);
+        lines.push(row);
+      }
+      return lines;
+    }
+
+    function ensureCategoryPath(pathStr) {
+      if (!pathStr) return '';
+      const parts = pathStr.split(/[>＞/]/).map(p => p.trim()).filter(p => p.length > 0);
+      let parentId = '';
+      let currentCatObj = null;
+
+      for (let i = 0; i < parts.length; i++) {
+        const name = parts[i];
+        let found = categories.find(c => c.name === name && c.parentId === parentId);
+
+        if (!found) {
+          found = {
+            id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+            name: name,
+            parentId: parentId
+          };
+          categories.push(found);
+        }
+        parentId = found.id;
+        currentCatObj = found;
+      }
+
+      return currentCatObj ? currentCatObj.id : '';
+    }
+
+    window.exportCSV = function() {
+      const headers = ['ID', '物品名', 'エリア', '棚番号', 'カテゴリ', '数量', 'タグ', 'メモ', '作成日時'];
+      let csvRows = [headers.map(escapeCSVField).join(',')];
+
+      items.forEach(item => {
+        const catPath = getCategoryFullPath(item.category);
+        const tagStr = (item.tags || []).join(', ');
+        const row = [
+          item.id || '',
+          item.name || '',
+          item.area || '',
+          item.slot || 1,
+          catPath || '',
+          item.quantity || 1,
+          tagStr,
+          item.memo || '',
+          item.createdAt || ''
+        ];
+        csvRows.push(row.map(escapeCSVField).join(','));
+      });
+
+      const csvString = '\uFEFF' + csvRows.join('\r\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `storage_items_${currentHub}_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      showToast('CSVファイルを保存しました', 'success');
+    };
+
+    window.importCSV = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const text = evt.target.result;
+          const parsedRows = parseCSV(text);
+          if (parsedRows.length < 2) {
+            showToast('有効なCSVデータが見つかりませんでした', 'error');
+            return;
+          }
+
+          const headers = parsedRows[0].map(h => h.trim().replace(/^"|"$/g, ''));
+          const idIdx = headers.indexOf('ID');
+          const nameIdx = headers.indexOf('物品名');
+          const areaIdx = headers.indexOf('エリア');
+          const slotIdx = headers.indexOf('棚番号');
+          const catIdx = headers.indexOf('カテゴリ');
+          const qtyIdx = headers.indexOf('数量');
+          const tagIdx = headers.indexOf('タグ');
+          const memoIdx = headers.indexOf('メモ');
+          const createdIdx = headers.indexOf('作成日時');
+
+          if (nameIdx === -1 || areaIdx === -1 || slotIdx === -1) {
+            showToast('CSVのヘッダー情報が不十分です', 'error');
+            return;
+          }
+
+          let newItems = [];
+          for (let i = 1; i < parsedRows.length; i++) {
+            const row = parsedRows[i];
+            if (row.length < 3) continue;
+
+            const name = (row[nameIdx] || '').trim();
+            if (!name) continue;
+
+            const area = (row[areaIdx] || 'A').trim().toUpperCase();
+            const slot = parseInt(row[slotIdx]) || 1;
+            const qty = qtyIdx !== -1 ? (parseInt(row[qtyIdx]) || 1) : 1;
+            const memo = memoIdx !== -1 ? (row[memoIdx] || '').trim() : '';
+            const rawCat = catIdx !== -1 ? (row[catIdx] || '').trim() : '';
+            const rawTags = tagIdx !== -1 ? (row[tagIdx] || '').trim() : '';
+            const created = createdIdx !== -1 && row[createdIdx] ? row[createdIdx].trim() : new Date().toISOString();
+            const id = idIdx !== -1 && row[idIdx] ? row[idIdx].trim() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 5));
+
+            let categoryId = '';
+            if (rawCat) {
+              categoryId = ensureCategoryPath(rawCat);
+            }
+
+            let tagList = [];
+            if (rawTags) {
+              tagList = rawTags.split(/[,;|]/).map(t => t.trim()).filter(t => t.length > 0);
+              tagList.forEach(t => {
+                if (!tags.includes(t)) {
+                  tags.push(t);
+                }
+              });
+            }
+
+            newItems.push({
+              id: id,
+              name: name,
+              area: area,
+              slot: slot,
+              category: categoryId,
+              quantity: qty,
+              tags: tagList,
+              memo: memo,
+              createdAt: created
+            });
+          }
+
+          if (newItems.length > 0) {
+            items = newItems;
+            saveAllData();
+            initUI();
+            showToast(`CSVから${newItems.length}件の物品を復元しました`, 'success');
+          } else {
+            showToast('読み込めるデータがありませんでした', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('CSVファイルの復元に失敗しました', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto ui-card p-2.5 flex items-center justify-between gap-2 shadow-md border-l-4 text-xs font-bold text-slate-800';
+
+      if (type === 'success') toast.classList.add('border-l-emerald-500');
+      else if (type === 'error') toast.classList.add('border-l-red-500');
+      else if (type === 'undo') toast.classList.add('border-l-amber-500');
+      else toast.classList.add('border-l-indigo-500');
+
+      toast.innerHTML = `
+        <span>${escapeHtml(msg)}</span>
+        ${type === 'undo' ? '<button onclick="undoDelete(); this.parentElement.remove();" class="px-2 py-0.5 bg-amber-500 text-white rounded-[4px] text-[10px]">元に戻す</button>' : ''}
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 200);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+  </script>
+</body>
+</html>
