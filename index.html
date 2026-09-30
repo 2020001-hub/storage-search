@@ -145,10 +145,10 @@
 <body class="flex flex-col h-screen p-3 md:p-4 gap-3">
 
   <!-- 初回言語選択モーダル -->
-  <div id="modalInitLanguage" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4">
+  <div id="modalInitLanguage" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
     <div class="ui-card max-w-xs w-full p-5 space-y-4 shadow-xl text-center">
       <h3 class="text-sm font-bold text-slate-800">Language / 言語 / 语言</h3>
-      <p class="text-xs text-slate-600">Select Language / 言語を選択してください / 请选择语言</p>
+      <p class="text-xs text-slate-600">Select Language / 言語を選択してください / 请選択语言</p>
       <div class="space-y-2 pt-2">
         <button onclick="setInitialLanguage('ja')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-[6px]">日本語</button>
         <button onclick="setInitialLanguage('en')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 rounded-[6px]">English</button>
@@ -486,6 +486,7 @@
     const i18n = {
       ja: {
         app_title: "収納・蔵書検索システム",
+        default_hub_name: "デフォルトの収納",
         hub_label: "拠点:",
         add_hub_title: "新しい拠点を取り追加",
         delete_hub_title: "選択中の拠点を削除",
@@ -599,6 +600,7 @@
       },
       en: {
         app_title: "Storage & Book Search System",
+        default_hub_name: "Default Storage",
         hub_label: "Hub:",
         add_hub_title: "Add new hub",
         delete_hub_title: "Delete current hub",
@@ -712,6 +714,7 @@
       },
       zh: {
         app_title: "收纳与图书检索系统",
+        default_hub_name: "默认收纳",
         hub_label: "据点:",
         add_hub_title: "添加新据点",
         delete_hub_title: "删除当前据点",
@@ -836,6 +839,13 @@
       return str;
     }
 
+    function getHubDisplayName(hubName) {
+      if (hubName === 'デフォルトの収納' || hubName === 'Default Storage' || hubName === '默认收纳') {
+        return t('default_hub_name');
+      }
+      return hubName;
+    }
+
     function changeLanguage(lang, applyUI = true) {
       currentLang = lang;
       safeStorage.setItem('storage_lang', lang);
@@ -903,6 +913,7 @@
       if (savedLang) {
         currentLang = savedLang;
         document.getElementById('langSelect').value = savedLang;
+        closeModal('modalInitLanguage');
         applyLanguageToDOM();
       } else {
         openModal('modalInitLanguage');
@@ -1067,7 +1078,7 @@
       safeStorage.setItem('storage_current_hub', hub);
       loadAllData();
       initUI();
-      showToast(t('toast_switch_hub', { hub }), 'info');
+      showToast(t('toast_switch_hub', { hub: getHubDisplayName(hub) }), 'info');
     };
 
     window.addNewHub = function() {
@@ -1079,7 +1090,7 @@
           currentHub = trimmed;
           saveAllData();
           initUI();
-          showToast(t('toast_create_hub', { hub: trimmed }), 'success');
+          showToast(t('toast_create_hub', { hub: getHubDisplayName(trimmed) }), 'success');
         }
       }
     };
@@ -1089,7 +1100,7 @@
         showToast(t('toast_min_hub'), 'error');
         return;
       }
-      if (!confirm(t('confirm_delete_hub', { hub: currentHub }))) {
+      if (!confirm(t('confirm_delete_hub', { hub: getHubDisplayName(currentHub) }))) {
         return;
       }
       const deletedHub = currentHub;
@@ -1104,7 +1115,7 @@
       saveAllData();
       loadAllData();
       initUI();
-      showToast(t('toast_delete_hub', { hub: deletedHub }), 'success');
+      showToast(t('toast_delete_hub', { hub: getHubDisplayName(deletedHub) }), 'success');
     };
 
     function renderHubDropdown() {
@@ -1113,7 +1124,7 @@
       hubs.forEach(h => {
         const opt = document.createElement('option');
         opt.value = h;
-        opt.textContent = h;
+        opt.textContent = getHubDisplayName(h);
         if (h === currentHub) opt.selected = true;
         select.appendChild(opt);
       });
@@ -1704,7 +1715,7 @@
     window.openResetModal = function() {
       document.getElementById('resetInputShield').value = '';
       document.getElementById('resetExecuteBtn').disabled = true;
-      document.getElementById('resetConfirmText').innerHTML = t('confirm_reset_text', { hub: currentHub });
+      document.getElementById('resetConfirmText').innerHTML = t('confirm_reset_text', { hub: getHubDisplayName(currentHub) });
       openModal('modalResetConfirm');
     };
 
@@ -1719,7 +1730,7 @@
       saveAllData();
       initUI();
       closeModal('modalResetConfirm');
-      showToast(t('toast_reset_hub', { hub: currentHub }), 'success');
+      showToast(t('toast_reset_hub', { hub: getHubDisplayName(currentHub) }), 'success');
     };
 
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
