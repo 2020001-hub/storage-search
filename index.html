@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="app_title">収納・蔵書検索システム</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --border-color: #cbd5e1;
+      --accent-color: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-light: #e0e7ff;
+      --accent-text: #3730a3;
+      
+      --card-radius: 8px;
+      --btn-radius: 6px;
+      --input-radius: 6px;
+      --grid-radius: 4px;
+      --badge-radius: 4px;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --border-color: #334155;
+      --accent-color: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-light: #312e81;
+      --accent-text: #e0e7ff;
+    }
+
+    [data-theme="green"] {
+      --bg-primary: #f0fdf4;
+      --bg-card: #ffffff;
+      --text-main: #064e3b;
+      --text-sub: #047857;
+      --border-color: #bbf7d0;
+      --accent-color: #059669;
+      --accent-hover: #047857;
+      --accent-light: #d1fae5;
+      --accent-text: #065f46;
+    }
+
+    [data-theme="purple"] {
+      --bg-primary: #faf5ff;
+      --bg-card: #ffffff;
+      --text-main: #581c87;
+      --text-sub: #7e22ce;
+      --border-color: #e9d5ff;
+      --accent-color: #9333ea;
+      --accent-hover: #7e22ce;
+      --accent-light: #f3e8ff;
+      --accent-text: #6b21a8;
+    }
+
+    [data-theme="mono"] {
+      --bg-primary: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #111827;
+      --text-sub: #4b5563;
+      --border-color: #d1d5db;
+      --accent-color: #374151;
+      --accent-hover: #1f2937;
+      --accent-light: #e5e7eb;
+      --accent-text: #111827;
+    }
+
+    [data-theme="warm"] {
+      --bg-primary: #fffbeb;
+      --bg-card: #ffffff;
+      --text-main: #78350f;
+      --text-sub: #92400e;
+      --border-color: #fde68a;
+      --accent-color: #d97706;
+      --accent-hover: #b45309;
+      --accent-light: #fef3c7;
+      --accent-text: #78350f;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .ui-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--card-radius);
+    }
+
+    .ui-input {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: var(--input-radius);
+    }
+
+    .ui-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .ui-btn {
+      border-radius: var(--btn-radius);
+    }
+
+    .ui-btn-accent {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border-radius: var(--btn-radius);
+    }
+
+    .ui-btn-accent:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .ui-badge {
+      border-radius: var(--badge-radius);
+      background-color: var(--accent-light);
+      color: var(--accent-text);
+    }
+
+    .grid-cell-btn {
+      border-radius: var(--grid-radius);
+    }
+
+    @keyframes flashHighlight {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: #fde047; }
+    }
+    .cell-flash {
+      animation: flashHighlight 0.6s ease-in-out 3;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen p-3 md:p-4 gap-3">
+
+  <!-- 初回言語選択モーダル -->
+  <div id="modalInitLanguage" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-5 space-y-4 shadow-xl text-center">
+      <h3 class="text-sm font-bold text-slate-800">Language / 言語 / 语言</h3>
+      <p class="text-xs text-slate-600">Select Language / 言語を選択してください / 请選択语言</p>
+      <div class="space-y-2 pt-2">
+        <button onclick="setInitialLanguage('ja')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-[6px]">日本語</button>
+        <button onclick="setInitialLanguage('en')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 rounded-[6px]">English</button>
+        <button onclick="setInitialLanguage('zh')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 rounded-[6px]">中文</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="ui-card p-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <div class="flex items-center gap-3">
+      <h1 class="text-base font-bold tracking-tight" data-i18n="app_title">収納・蔵書検索システム</h1>
+      
+      <!-- 拠点選択 -->
+      <div class="flex items-center gap-1.5 text-xs bg-slate-100 p-1 border border-slate-200 rounded-[6px]">
+        <span class="text-slate-600 font-medium px-1" data-i18n="hub_label">拠点:</span>
+        <select id="hubSelect" onchange="changeHub(this.value)" class="bg-white border border-slate-200 rounded-[4px] px-2 py-0.5 font-bold text-slate-800 cursor-pointer">
+        </select>
+        <button onclick="addNewHub()" class="px-2 py-0.5 bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-700 rounded-[4px]" data-i18n-title="add_hub_title" title="新しい拠点を取り追加">+</button>
+        <button onclick="deleteCurrentHub()" class="px-2 py-0.5 bg-white border border-slate-200 hover:bg-slate-50 font-bold text-red-600 rounded-[4px]" data-i18n-title="delete_hub_title" title="選択中の拠点を削除">-</button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs">
+      <!-- 言語選択 -->
+      <select id="langSelect" onchange="changeLanguage(this.value)" class="ui-input px-2 py-1 font-medium cursor-pointer">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+      </select>
+
+      <!-- カラーテーマ切替 -->
+      <select id="themeSelect" onchange="changeTheme(this.value)" class="ui-input px-2 py-1 font-medium cursor-pointer">
+        <option value="default" data-i18n="theme_default">テーマ: デフォルト</option>
+        <option value="dark" data-i18n="theme_dark">テーマ: ダーク</option>
+        <option value="green" data-i18n="theme_green">テーマ: グリーン</option>
+        <option value="purple" data-i18n="theme_purple">テーマ: パープル</option>
+        <option value="mono" data-i18n="theme_mono">テーマ: モノクロ</option>
+        <option value="warm" data-i18n="theme_warm">テーマ: ウォーム</option>
+      </select>
+
+      <!-- CSVバックアップ -->
+      <button onclick="exportCSV()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border border-slate-300 rounded-[6px]" data-i18n="export_csv">
+        ファイルに保存
+      </button>
+      <label class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border border-slate-300 rounded-[6px] cursor-pointer">
+        <span data-i18n="import_csv">保存ファイルから戻す</span>
+        <input type="file" accept=".csv" onchange="importCSV(event)" class="hidden">
+      </label>
+
+      <!-- 初期化ボタン -->
+      <button onclick="openResetModal()" class="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-medium border border-red-200 rounded-[6px]" data-i18n="reset_hub">
+        選択中の場所を初期化
+      </button>
+    </div>
+  </header>
+
+  <nav class="grid grid-cols-2 gap-2 shrink-0">
+    <button id="tabBtn-search" onclick="switchMainTab('search')" class="py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm" data-i18n="tab_search">
+      検索
+    </button>
+    <button id="tabBtn-manage" onclick="switchMainTab('manage')" class="py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50" data-i18n="tab_manage">
+      登録・管理
+    </button>
+  </nav>
+
+  <main id="view-search" class="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+    
+    <!-- 検索用サブタブ -->
+    <div class="ui-card p-3 flex flex-col gap-3 shrink-0">
+      <div class="flex border-b border-slate-200 pb-2 gap-2">
+        <button id="searchSubTabBtn-keyword" onclick="switchSearchSubTab('keyword')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white" data-i18n="subtab_keyword_search">キーワード検索</button>
+        <button id="searchSubTabBtn-location" onclick="switchSearchSubTab('location')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100" data-i18n="subtab_location_search">場所で検索</button>
+      </div>
+
+      <!-- サブタブ1: キーワード検索のコントロールパネル -->
+      <div id="searchControls-keyword" class="space-y-2">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+          <div class="md:col-span-6">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5" data-i18n="lbl_keyword_search">キーワード検索（名称・棚コード・メモなど/かなカナ対応）</label>
+            <input type="text" id="keywordSearchInput" oninput="renderKeywordSearchResults()" placeholder="検索キーワードを入力" data-i18n-placeholder="ph_keyword_search" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5" data-i18n="lbl_filter_category">カテゴリ絞り込み</label>
+            <select id="searchCategoryFilter" onchange="renderKeywordSearchResults()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="" data-i18n="opt_all_categories">全カテゴリ</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 mb-0.5" data-i18n="lbl_filter_tag">タグ絞り込み</label>
+            <select id="searchTagFilter" onchange="renderKeywordSearchResults()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="" data-i18n="opt_all_tags">全タグ</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+          <label class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
+            <input type="checkbox" id="recentOnlyFilter" onchange="renderKeywordSearchResults()" class="rounded text-indigo-600">
+            <span data-i18n="filter_recent_7days">直近7日以内に追加した物品のみ表示</span>
+          </label>
+
+          <button onclick="clearSearchFilters()" class="text-[11px] text-slate-500 hover:text-slate-800 underline" data-i18n="clear_search_conditions">
+            検索条件をクリア
+          </button>
+        </div>
+      </div>
+
+      <!-- サブタブ2: 場所で検索のコントロールパネル -->
+      <div id="searchControls-location" class="space-y-2 hidden">
+        <div id="alphabetButtons" class="flex flex-wrap gap-1">
+        </div>
+
+        <div class="p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 flex-1">
+            <span id="selectedAreaBadge" class="font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-[4px]">エリア: A</span>
+            <input type="text" id="areaNameInput" placeholder="例: リビング棚" data-i18n-placeholder="ph_area_name" class="flex-1 px-2 py-1 text-xs ui-input">
+          </div>
+          <button onclick="saveCurrentAreaName()" class="px-3 py-1 ui-btn-accent font-bold text-xs shrink-0" data-i18n="btn_save_area_name">
+            場所名を保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 min-h-0 ui-card p-3 flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+        <h3 id="searchSectionTitle" class="text-xs font-bold text-slate-700" data-i18n="title_search_results">検索結果一覧</h3>
+        <span id="searchSectionSubText" class="text-[10px] text-slate-500" data-i18n="sub_search_results">条件に合う物品が表示されます</span>
+      </div>
+
+      <div id="keywordResultsContainer" class="flex-1 overflow-y-auto space-y-2 p-1">
+      </div>
+
+      <div id="shelfGridContainer" class="flex-1 overflow-y-auto hidden grid grid-cols-5 sm:grid-cols-9 md:grid-cols-11 gap-1.5 p-1">
+      </div>
+    </div>
+
+  </main>
+
+  <main id="view-manage" class="flex-1 min-h-0 hidden grid grid-cols-1 md:grid-cols-12 gap-3">
+    
+    <!-- 左カラム: フォーム領域 -->
+    <section class="md:col-span-5 ui-card p-4 flex flex-col justify-between overflow-y-auto">
+      <div class="space-y-3">
+        <div class="flex border-b border-slate-200 pb-2 gap-2">
+          <button id="subTabBtn-item" onclick="switchManageSubTab('item')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white" data-i18n="subtab_register_item">物品登録</button>
+          <button id="subTabBtn-category" onclick="switchManageSubTab('category')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100" data-i18n="subtab_register_category">カテゴリ登録</button>
+          <button id="subTabBtn-tag" onclick="switchManageSubTab('tag')" class="text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100" data-i18n="subtab_register_tag">タグ登録</button>
+        </div>
+
+        <!-- 物品登録・編集フォーム -->
+        <form id="form-item" onsubmit="submitItemForm(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_item_name">物品名・書名 *</label>
+            <input type="text" id="itemNameInput" required placeholder="物品名を入力" data-i18n-placeholder="ph_item_name" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_area">エリア (A-Z) *</label>
+              <select id="itemAreaSelect" onchange="updateShelfCodePreview()" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_slot">棚番号 (1-99) *</label>
+              <input type="number" id="itemSlotInput" min="1" max="99" value="1" required oninput="updateShelfCodePreview()" class="w-full px-2 py-1.5 text-xs ui-input">
+            </div>
+          </div>
+
+          <div class="p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium" data-i18n="lbl_shelf_code_preview">棚コード表示:</span>
+            <span id="shelfCodePreview" class="ui-badge font-bold px-2 py-0.5 text-xs">A1</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_category">カテゴリ</label>
+              <select id="itemCategorySelect" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_quantity">数量</label>
+              <input type="number" id="itemQuantityInput" min="1" value="1" class="w-full px-2 py-1.5 text-xs ui-input">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_tag">タグ</label>
+            <div id="itemTagCheckboxes" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-2 border border-slate-200 rounded-[6px] bg-slate-50">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_memo">メモ</label>
+            <textarea id="itemMemoInput" rows="2" placeholder="メモを入力" data-i18n-placeholder="ph_memo" class="w-full px-3 py-1.5 text-xs ui-input resize-none"></textarea>
+          </div>
+
+          <div class="flex gap-2">
+            <button type="submit" id="itemSubmitBtn" class="flex-1 py-2 ui-btn-accent font-bold text-xs shadow-sm" data-i18n="btn_register_item">
+              物品を登録する
+            </button>
+            <button type="button" id="itemCancelEditBtn" onclick="cancelEditItem()" class="hidden px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-[6px]" data-i18n="btn_cancel">
+              キャンセル
+            </button>
+          </div>
+        </form>
+
+        <!-- カテゴリ登録フォーム -->
+        <form id="form-category" onsubmit="submitCategoryForm(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_parent_category">親カテゴリ（指定しない場合はトップ層）</label>
+            <select id="categoryParentSelect" class="w-full px-2 py-1.5 text-xs ui-input cursor-pointer">
+              <option value="" data-i18n="opt_root_category">未設定 (ルートカテゴリ)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_new_category_name">新規カテゴリ名 *</label>
+            <input type="text" id="categoryNameInput" required placeholder="カテゴリ名を入力" data-i18n-placeholder="ph_category_name" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+          <button type="submit" class="w-full py-2 ui-btn-accent font-bold text-xs shadow-sm" data-i18n="btn_add_category">
+            カテゴリを追加する
+          </button>
+        </form>
+
+        <!-- タグ登録フォーム -->
+        <form id="form-tag" onsubmit="submitTagForm(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold mb-1 text-slate-700" data-i18n="lbl_new_tag_name">新規タグ名 *</label>
+            <input type="text" id="tagNameInput" required placeholder="タグ名を入力" data-i18n-placeholder="ph_tag_name" class="w-full px-3 py-1.5 text-xs ui-input">
+          </div>
+          <button type="submit" class="w-full py-2 ui-btn-accent font-bold text-xs shadow-sm" data-i18n="btn_add_tag">
+            タグを追加する
+          </button>
+        </form>
+
+      </div>
+    </section>
+
+    <!-- 右カラム: 登録済みリスト領域 -->
+    <section class="md:col-span-7 ui-card p-4 flex flex-col min-h-0 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+        <h2 id="rightColumnTitle" class="text-xs font-bold text-slate-700" data-i18n="title_registered_items">登録アイテム一覧</h2>
+        <span id="registeredCountBadge" class="ui-badge text-[10px] font-bold px-2 py-0.5">0件</span>
+      </div>
+
+      <div id="rightListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- モーダル1: 棚マスダイレクトアクション -->
+  <div id="modalShelfAction" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 id="shelfActionTitle" class="text-xs font-bold text-slate-800">棚コード: A12</h3>
+        <button onclick="closeModal('modalShelfAction')" class="text-slate-400 hover:text-slate-600 font-bold text-xs" data-i18n="btn_close">閉じる</button>
+      </div>
+      <p class="text-xs text-slate-600" data-i18n="msg_select_action">実行する操作を選択してください。</p>
+      <div class="space-y-2 pt-1">
+        <button onclick="actionAddItemToShelf()" class="w-full py-2 ui-btn-accent font-bold text-xs" data-i18n="btn_add_item_here">
+          ここに物品を追加
+        </button>
+        <button onclick="actionShowShelfItems()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 rounded-[6px]" data-i18n="btn_show_items_here">
+          今ある物品を表示
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル2: 今ある物品の一覧表示 -->
+  <div id="modalShelfItems" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-md w-full p-4 flex flex-col max-h-[80vh] shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+        <h3 id="shelfItemsTitle" class="text-xs font-bold text-slate-800" data-i18n="title_stored_items">保管物品一覧</h3>
+      </div>
+      <div id="shelfItemsList" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3">
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button onclick="closeModal('modalShelfItems')" class="px-4 py-1.5 border border-slate-300 rounded-[6px] text-slate-600 hover:bg-slate-50 font-bold text-xs" data-i18n="btn_close">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル3: 場所初期化用安全確認モーダル -->
+  <div id="modalResetConfirm" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <h3 class="text-xs font-bold text-red-600 border-b border-red-100 pb-2" data-i18n="reset_hub">選択中の場所を初期化</h3>
+      <p id="resetConfirmText" class="text-xs text-slate-600 leading-relaxed">
+        現在の拠点データを初期化します。実行するには「削除」と入力してください。
+      </p>
+      <input type="text" id="resetInputShield" onkeyup="checkResetShieldInput()" placeholder="削除" data-i18n-placeholder="ph_reset_confirm" class="w-full px-3 py-1.5 text-xs ui-input text-center">
+      <div class="flex gap-2 pt-1">
+        <button id="resetExecuteBtn" disabled onclick="executeHubReset()" class="flex-1 py-2 bg-red-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-[6px]" data-i18n="btn_execute">
+          実行
+        </button>
+        <button onclick="closeModal('modalResetConfirm')" class="px-3 py-2 border border-slate-300 rounded-[6px] text-slate-600 text-xs font-medium" data-i18n="btn_cancel">
+          キャンセル
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル4: 棚コードラベル印刷プレビュー -->
+  <div id="modalPrintLabel" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="ui-card max-w-xs w-full p-4 space-y-3 shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="text-xs font-bold text-slate-800" data-i18n="title_label_print">ラベル印刷プレビュー</h3>
+        <button onclick="closeModal('modalPrintLabel')" class="text-slate-400 hover:text-slate-600 font-bold text-xs" data-i18n="btn_close">閉じる</button>
+      </div>
+      <div class="border border-slate-800 rounded-[6px] p-3 bg-white text-slate-900 text-center space-y-1.5">
+        <div class="text-[9px] font-bold text-slate-400">STORAGE CODE</div>
+        <div id="printShelfCode" class="text-xl font-bold text-indigo-700">A12</div>
+        <div id="printItemName" class="text-xs font-bold border-t border-b border-slate-200 py-1" data-i18n="lbl_item_name_placeholder">物品名</div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="window.print()" class="flex-1 py-2 ui-btn-accent font-bold text-xs" data-i18n="btn_print">
+          印刷する
+        </button>
+        <button onclick="closeModal('modalPrintLabel')" class="px-3 py-2 border border-slate-300 rounded-[6px] text-slate-600 text-xs font-medium" data-i18n="btn_close">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none"></div>
+
+  <script>
+    const i18n = {
+      ja: {
+        app_title: "収納・蔵書検索システム",
+        default_hub_name: "デフォルトの収納",
+        hub_label: "拠点:",
+        add_hub_title: "新しい拠点を取り追加",
+        delete_hub_title: "選択中の拠点を削除",
+        theme_default: "テーマ: デフォルト",
+        theme_dark: "テーマ: ダーク",
+        theme_green: "テーマ: グリーン",
+        theme_purple: "テーマ: パープル",
+        theme_mono: "テーマ: モノクロ",
+        theme_warm: "テーマ: ウォーム",
+        export_csv: "ファイルに保存",
+        import_csv: "保存ファイルから戻す",
+        reset_hub: "選択中の場所を初期化",
+        tab_search: "検索",
+        tab_manage: "登録・管理",
+        subtab_keyword_search: "キーワード検索",
+        subtab_location_search: "場所で検索",
+        lbl_keyword_search: "キーワード検索（名称・棚コード・メモなど/かなカナ対応）",
+        ph_keyword_search: "検索キーワードを入力",
+        lbl_filter_category: "カテゴリ絞り込み",
+        opt_all_categories: "全カテゴリ",
+        lbl_filter_tag: "タグ絞り込み",
+        opt_all_tags: "全タグ",
+        filter_recent_7days: "直近7日以内に追加した物品のみ表示",
+        clear_search_conditions: "検索条件をクリア",
+        ph_area_name: "例: リビング棚",
+        btn_save_area_name: "場所名を保存",
+        title_search_results: "検索結果一覧",
+        sub_search_results: "条件に合う物品が表示されます",
+        subtab_register_item: "物品登録",
+        subtab_register_category: "カテゴリ登録",
+        subtab_register_tag: "タグ登録",
+        lbl_item_name: "物品名・書名 *",
+        ph_item_name: "物品名を入力",
+        lbl_area: "エリア (A-Z) *",
+        lbl_slot: "棚番号 (1-99) *",
+        lbl_shelf_code_preview: "棚コード表示:",
+        lbl_category: "カテゴリ",
+        lbl_quantity: "数量",
+        lbl_tag: "タグ",
+        lbl_memo: "メモ",
+        ph_memo: "メモを入力",
+        btn_register_item: "物品を登録する",
+        btn_update_item: "物品情報を更新する",
+        btn_cancel: "キャンセル",
+        lbl_parent_category: "親カテゴリ（指定しない場合はトップ層）",
+        opt_root_category: "未設定 (ルートカテゴリ)",
+        lbl_new_category_name: "新規カテゴリ名 *",
+        ph_category_name: "カテゴリ名を入力",
+        btn_add_category: "カテゴリを追加する",
+        lbl_new_tag_name: "新規タグ名 *",
+        ph_tag_name: "タグ名を入力",
+        btn_add_tag: "タグを追加する",
+        title_registered_items: "登録アイテム一覧",
+        title_registered_tags: "登録タグ一覧",
+        title_registered_categories: "登録カテゴリ一覧",
+        btn_close: "閉じる",
+        msg_select_action: "実行する操作を選択してください。",
+        btn_add_item_here: "ここに物品を追加",
+        btn_show_items_here: "今ある物品を表示",
+        title_stored_items: "保管物品一覧",
+        ph_reset_confirm: "削除",
+        btn_execute: "実行",
+        title_label_print: "ラベル印刷プレビュー",
+        lbl_item_name_placeholder: "物品名",
+        btn_print: "印刷する",
+        opt_unset: "未設定",
+        badge_count: "件",
+        btn_delete: "削除",
+        btn_edit: "編集",
+        btn_show_location: "場所を表示",
+        btn_add_sub_category: "子カテゴリを追加",
+        msg_no_items: "物品が登録されていません",
+        msg_no_items_sub: "左側のフォームから物品を登録してください。",
+        msg_no_tags: "登録されているタグはありません。",
+        msg_no_categories: "登録されているカテゴリはありません。",
+        msg_no_matched_items: "該当する物品がありません",
+        msg_no_matched_items_sub: "キーワードや絞り込み条件を変更してみてください。",
+        msg_no_stored_items: "この棚マスに保管されている物品はありません。",
+        msg_undo: "元に戻す",
+        confirm_reset_text: "拠点 [<span class=\"font-bold text-slate-800\">{hub}</span>] のすべての登録データを初期化します。<br>実行するには「削除」と入力してください。",
+        prompt_new_hub: "新しい拠点名を入力してください:",
+        toast_switch_hub: "拠点「{hub}」に切り替えました",
+        toast_create_hub: "新しい拠点「{hub}」を作成しました",
+        toast_min_hub: "拠点情報は最低1つ必要です",
+        confirm_delete_hub: "拠点「{hub}」を削除しますか？\n（登録されていた物品データも削除されます）",
+        toast_delete_hub: "拠点「{hub}」を削除しました",
+        toast_update_item: "「{name}」の情報を更新しました",
+        toast_register_item: "「{name}」を {code} に登録しました",
+        toast_add_tag: "タグ「{name}」を追加しました",
+        toast_add_category: "カテゴリ「{name}」を追加しました",
+        toast_delete_item: "「{name}」を削除しました",
+        toast_restore_item: "「{name}」を復元しました",
+        toast_save_area: "エリア {area} の場所名を保存しました",
+        toast_reset_hub: "拠点「{hub}」のデータを初期化しました",
+        toast_save_csv: "CSVファイルを保存しました",
+        toast_no_csv: "有効なCSVデータが見つかりませんでした",
+        toast_csv_header_err: "CSVのヘッダー情報が不十分です",
+        toast_restore_csv: "CSVから{count}件の物品を復元しました",
+        toast_no_import_data: "読み込めるデータがありませんでした",
+        toast_import_err: "CSVファイルの復元に失敗しました",
+        area_label: "エリア:",
+        grid_title: "棚マス一覧 ({area}1〜{area}99) - {name}",
+        grid_sub_title: "色付きマスは物品が登録されています",
+        grid_keyword_title: "キーワード検索結果",
+        grid_keyword_sub: "{count}件の物品が見つかりました",
+        unnamed_area: "名称未設定",
+        shelf_items_title_format: "保管物品一覧 - {code}",
+        tag_not_registered: "タグ未登録",
+        qty_label: "数量:",
+        cat_label: "カテゴリ:"
+      },
+      en: {
+        app_title: "Storage & Book Search System",
+        default_hub_name: "Default Storage",
+        hub_label: "Hub:",
+        add_hub_title: "Add new hub",
+        delete_hub_title: "Delete current hub",
+        theme_default: "Theme: Default",
+        theme_dark: "Theme: Dark",
+        theme_green: "Theme: Green",
+        theme_purple: "Theme: Purple",
+        theme_mono: "Theme: Mono",
+        theme_warm: "Theme: Warm",
+        export_csv: "Save to File",
+        import_csv: "Restore from File",
+        reset_hub: "Reset Current Location",
+        tab_search: "Search",
+        tab_manage: "Register & Manage",
+        subtab_keyword_search: "Keyword Search",
+        subtab_location_search: "Search by Location",
+        lbl_keyword_search: "Keyword Search (Name, Shelf Code, Memo, etc.)",
+        ph_keyword_search: "Enter search keyword",
+        lbl_filter_category: "Category Filter",
+        opt_all_categories: "All Categories",
+        lbl_filter_tag: "Tag Filter",
+        opt_all_tags: "All Tags",
+        filter_recent_7days: "Show only items added in last 7 days",
+        clear_search_conditions: "Clear Filters",
+        ph_area_name: "e.g. Living Room Shelf",
+        btn_save_area_name: "Save Location Name",
+        title_search_results: "Search Results",
+        sub_search_results: "Matching items will be displayed",
+        subtab_register_item: "Register Item",
+        subtab_register_category: "Register Category",
+        subtab_register_tag: "Register Tag",
+        lbl_item_name: "Item / Book Name *",
+        ph_item_name: "Enter item name",
+        lbl_area: "Area (A-Z) *",
+        lbl_slot: "Slot No. (1-99) *",
+        lbl_shelf_code_preview: "Shelf Code:",
+        lbl_category: "Category",
+        lbl_quantity: "Quantity",
+        lbl_tag: "Tags",
+        lbl_memo: "Memo",
+        ph_memo: "Enter memo",
+        btn_register_item: "Register Item",
+        btn_update_item: "Update Item Info",
+        btn_cancel: "Cancel",
+        lbl_parent_category: "Parent Category (Top level if unset)",
+        opt_root_category: "Unset (Root Category)",
+        lbl_new_category_name: "New Category Name *",
+        ph_category_name: "Enter category name",
+        btn_add_category: "Add Category",
+        lbl_new_tag_name: "New Tag Name *",
+        ph_tag_name: "Enter tag name",
+        btn_add_tag: "Add Tag",
+        title_registered_items: "Registered Items",
+        title_registered_tags: "Registered Tags",
+        title_registered_categories: "Registered Categories",
+        btn_close: "Close",
+        msg_select_action: "Please select an action.",
+        btn_add_item_here: "Add Item Here",
+        btn_show_items_here: "Show Items Here",
+        title_stored_items: "Stored Items",
+        ph_reset_confirm: "Delete",
+        btn_execute: "Execute",
+        title_label_print: "Label Print Preview",
+        lbl_item_name_placeholder: "Item Name",
+        btn_print: "Print",
+        opt_unset: "Unset",
+        badge_count: "items",
+        btn_delete: "Delete",
+        btn_edit: "Edit",
+        btn_show_location: "Show Location",
+        btn_add_sub_category: "Add Subcategory",
+        msg_no_items: "No items registered",
+        msg_no_items_sub: "Please register items using the left form.",
+        msg_no_tags: "No tags registered.",
+        msg_no_categories: "No categories registered.",
+        msg_no_matched_items: "No matching items found",
+        msg_no_matched_items_sub: "Try changing keywords or filter conditions.",
+        msg_no_stored_items: "No items stored in this slot.",
+        msg_undo: "Undo",
+        confirm_reset_text: "Reset all registered data in hub [<span class=\"font-bold text-slate-800\">{hub}</span>].<br>Type \"Delete\" to execute.",
+        prompt_new_hub: "Enter new hub name:",
+        toast_switch_hub: "Switched to hub \"{hub}\"",
+        toast_create_hub: "Created new hub \"{hub}\"",
+        toast_min_hub: "At least one hub is required",
+        confirm_delete_hub: "Delete hub \"{hub}\"?\n(Registered item data will also be deleted)",
+        toast_delete_hub: "Deleted hub \"{hub}\"",
+        toast_update_item: "Updated info for \"{name}\"",
+        toast_register_item: "Registered \"{name}\" to {code}",
+        toast_add_tag: "Added tag \"{name}\"",
+        toast_add_category: "Added category \"{name}\"",
+        toast_delete_item: "Deleted \"{name}\"",
+        toast_restore_item: "Restored \"{name}\"",
+        toast_save_area: "Saved location name for Area {area}",
+        toast_reset_hub: "Reset data for hub \"{hub}\"",
+        toast_save_csv: "Saved CSV file",
+        toast_no_csv: "No valid CSV data found",
+        toast_csv_header_err: "CSV header information is insufficient",
+        toast_restore_csv: "Restored {count} items from CSV",
+        toast_no_import_data: "No data to import",
+        toast_import_err: "Failed to restore CSV file",
+        area_label: "Area:",
+        grid_title: "Slot Grid ({area}1–{area}99) - {name}",
+        grid_sub_title: "Highlighted slots contain items",
+        grid_keyword_title: "Keyword Search Results",
+        grid_keyword_sub: "Found {count} items",
+        unnamed_area: "Unnamed",
+        shelf_items_title_format: "Stored Items - {code}",
+        tag_not_registered: "No Tags",
+        qty_label: "Qty:",
+        cat_label: "Category:"
+      },
+      zh: {
+        app_title: "收纳与图书检索系统",
+        default_hub_name: "默认收纳",
+        hub_label: "据点:",
+        add_hub_title: "添加新据点",
+        delete_hub_title: "删除当前据点",
+        theme_default: "主题: 默认",
+        theme_dark: "主题: 暗黑",
+        theme_green: "主题: 绿色",
+        theme_purple: "主题: 紫色",
+        theme_mono: "主题: 黑白",
+        theme_warm: "主题: 暖色",
+        export_csv: "保存至文件",
+        import_csv: "从文件恢复",
+        reset_hub: "重置当前据点",
+        tab_search: "搜索",
+        tab_manage: "登记与管理",
+        subtab_keyword_search: "关键词搜索",
+        subtab_location_search: "按位置搜索",
+        lbl_keyword_search: "关键词搜索（名称、货架代码、备注等）",
+        ph_keyword_search: "输入搜索关键词",
+        lbl_filter_category: "分类筛选",
+        opt_all_categories: "全部分类",
+        lbl_filter_tag: "标签筛选",
+        opt_all_tags: "全部标签",
+        filter_recent_7days: "仅显示近7天内添加的物品",
+        clear_search_conditions: "清除搜索条件",
+        ph_area_name: "例如: 客厅货架",
+        btn_save_area_name: "保存位置名称",
+        title_search_results: "搜索结果列表",
+        sub_search_results: "符合条件的物品将显示于此",
+        subtab_register_item: "物品登记",
+        subtab_register_category: "分类登记",
+        subtab_register_tag: "标签登记",
+        lbl_item_name: "物品名 / 书名 *",
+        ph_item_name: "输入物品名称",
+        lbl_area: "区域 (A-Z) *",
+        lbl_slot: "货架编号 (1-99) *",
+        lbl_shelf_code_preview: "货架代码预览:",
+        lbl_category: "分类",
+        lbl_quantity: "数量",
+        lbl_tag: "标签",
+        lbl_memo: "备注",
+        ph_memo: "输入备注",
+        btn_register_item: "登记物品",
+        btn_update_item: "更新物品信息",
+        btn_cancel: "取消",
+        lbl_parent_category: "父级分类（不指定则为顶层）",
+        opt_root_category: "未设置 (根分类)",
+        lbl_new_category_name: "新分类名称 *",
+        ph_category_name: "输入分类名称",
+        btn_add_category: "添加分类",
+        lbl_new_tag_name: "新标签名称 *",
+        ph_tag_name: "输入标签名称",
+        btn_add_tag: "添加标签",
+        title_registered_items: "已登记物品列表",
+        title_registered_tags: "已登记标签列表",
+        title_registered_categories: "已登记分类列表",
+        btn_close: "关闭",
+        msg_select_action: "请选择要执行的操作。",
+        btn_add_item_here: "在此处添加物品",
+        btn_show_items_here: "显示现有物品",
+        title_stored_items: "存放物品列表",
+        ph_reset_confirm: "删除",
+        btn_execute: "执行",
+        title_label_print: "标签打印预览",
+        lbl_item_name_placeholder: "物品名称",
+        btn_print: "打印",
+        opt_unset: "未设置",
+        badge_count: "件",
+        btn_delete: "删除",
+        btn_edit: "编辑",
+        btn_show_location: "显示位置",
+        btn_add_sub_category: "添加子分类",
+        msg_no_items: "暂无登记物品",
+        msg_no_items_sub: "请从左侧表单登记物品。",
+        msg_no_tags: "暂无已登记标签。",
+        msg_no_categories: "暂无已登记分类。",
+        msg_no_matched_items: "未找到匹配的物品",
+        msg_no_matched_items_sub: "请尝试更改关键词或筛选条件。",
+        msg_no_stored_items: "该格子中未存放任何物品。",
+        msg_undo: "撤销",
+        confirm_reset_text: "将重置据点 [<span class=\"font-bold text-slate-800\">{hub}</span>] 的所有登记数据。<br>请输入“删除”以执行。",
+        prompt_new_hub: "请输入新据点名称:",
+        toast_switch_hub: "已切换至据点“{hub}”",
+        toast_create_hub: "已创建新据点“{hub}”",
+        toast_min_hub: "至少需要保留一个据点",
+        confirm_delete_hub: "确定要删除据点“{hub}”吗？\n（该据点下登记的物品数据也将被删除）",
+        toast_delete_hub: "已删除据点“{hub}”",
+        toast_update_item: "已更新“{name}”的信息",
+        toast_register_item: "已将“{name}”登记至 {code}",
+        toast_add_tag: "已添加标签“{name}”",
+        toast_add_category: "已添加分类“{name}”",
+        toast_delete_item: "已删除“{name}”",
+        toast_restore_item: "已恢复“{name}”",
+        toast_save_area: "已保存区域 {area} 的位置名称",
+        toast_reset_hub: "已重置据点“{hub}”的数据",
+        toast_save_csv: "已保存CSV文件",
+        toast_no_csv: "未找到有效的CSV数据",
+        toast_csv_header_err: "CSV表头信息不足",
+        toast_restore_csv: "已从CSV恢复 {count} 件物品",
+        toast_no_import_data: "没有可导入的数据",
+        toast_import_err: "恢复CSV文件失败",
+        area_label: "区域:",
+        grid_title: "货架网格 ({area}1–{area}99) - {name}",
+        grid_sub_title: "高亮显示的格子表示存有物品",
+        grid_keyword_title: "关键词搜索结果",
+        grid_keyword_sub: "共找到 {count} 件物品",
+        unnamed_area: "未命名",
+        shelf_items_title_format: "存放物品列表 - {code}",
+        tag_not_registered: "未设置标签",
+        qty_label: "数量:",
+        cat_label: "分类:"
+      }
+    };
+
+    let currentLang = 'ja';
+
+    function t(key, vars = {}) {
+      const dict = i18n[currentLang] || i18n['ja'];
+      let str = dict[key] || (i18n['ja'][key] || key);
+      for (const [k, v] of Object.entries(vars)) {
+        str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+      }
+      return str;
+    }
+
+    function getHubDisplayName(hubName) {
+      if (hubName === 'デフォルトの収納' || hubName === 'Default Storage' || hubName === '默认收纳') {
+        return t('default_hub_name');
+      }
+      return hubName;
+    }
+
+    function changeLanguage(lang, applyUI = true) {
+      currentLang = lang;
+      safeStorage.setItem('storage_lang', lang);
+      document.getElementById('langSelect').value = lang;
+      if (applyUI) {
+        applyLanguageToDOM();
+        initUI();
+      }
+    }
+
+    function applyLanguageToDOM() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerHTML = t(key);
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        el.placeholder = t(key);
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        el.title = t(key);
+      });
+    }
+
+    function setInitialLanguage(lang) {
+      closeModal('modalInitLanguage');
+      changeLanguage(lang, true);
+    }
+
+    const safeStorage = {
+      getItem: function(key) {
+        try { return localStorage.getItem(key); }
+        catch (e) { return this._mem ? this._mem[key] : null; }
+      },
+      setItem: function(key, val) {
+        try { localStorage.setItem(key, val); }
+        catch (e) { if (!this._mem) this._mem = {}; this._mem[key] = val; }
+      }
+    };
+
+    let hubs = ['デフォルトの収納'];
+    let currentHub = 'デフォルトの収納';
+    let items = [];
+    let tags = [];
+    let categories = [];
+    let areaNames = {};
+    let currentSelectedArea = 'A';
+    let activeTargetSlot = null;
+    let lastDeletedItem = null;
+    let editingItemId = null;
+
+    let currentMainTab = 'search';
+    let currentSearchSubTab = 'keyword';
+    let currentManageSubTab = 'item';
+
+    window.onload = function() {
+      loadAllData();
+      initLanguageSetting();
+      initUI();
+    };
+
+    function initLanguageSetting() {
+      const savedLang = safeStorage.getItem('storage_lang');
+      if (savedLang) {
+        currentLang = savedLang;
+        document.getElementById('langSelect').value = savedLang;
+        closeModal('modalInitLanguage');
+        applyLanguageToDOM();
+      } else {
+        openModal('modalInitLanguage');
+        applyLanguageToDOM();
+      }
+    }
+
+    function loadAllData() {
+      try {
+        const h = safeStorage.getItem('storage_hubs');
+        if (h) hubs = JSON.parse(h);
+        const ch = safeStorage.getItem('storage_current_hub');
+        if (ch && hubs.includes(ch)) currentHub = ch;
+
+        const it = safeStorage.getItem(`storage_items_${currentHub}`);
+        items = it ? JSON.parse(it) : [];
+
+        const tg = safeStorage.getItem('storage_tags');
+        tags = tg ? JSON.parse(tg) : [];
+
+        const cat = safeStorage.getItem('storage_categories');
+        if (cat) {
+          const parsedCat = JSON.parse(cat);
+          categories = parsedCat.map(c => {
+            if (typeof c === 'string') {
+              return { id: c, name: c, parentId: '' };
+            }
+            return c;
+          });
+        } else {
+          categories = [];
+        }
+
+        const ar = safeStorage.getItem(`storage_areas_${currentHub}`);
+        areaNames = ar ? JSON.parse(ar) : {};
+
+        const th = safeStorage.getItem('storage_theme') || 'default';
+        changeTheme(th, false);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function saveAllData() {
+      safeStorage.setItem('storage_hubs', JSON.stringify(hubs));
+      safeStorage.setItem('storage_current_hub', currentHub);
+      safeStorage.setItem(`storage_items_${currentHub}`, JSON.stringify(items));
+      safeStorage.setItem('storage_tags', JSON.stringify(tags));
+      safeStorage.setItem('storage_categories', JSON.stringify(categories));
+      safeStorage.setItem(`storage_areas_${currentHub}`, JSON.stringify(areaNames));
+    }
+
+    function initUI() {
+      renderHubDropdown();
+      renderAreaSelectOptions();
+      renderTagCheckboxes();
+      renderCategorySelectOptions();
+      renderTagFilterOptions();
+      renderAlphabetButtons();
+      renderRightColumnList();
+      renderSearchSubTabContent();
+      updateAreaNameInput();
+    }
+
+    function getCategoryObj(id) {
+      if (!id) return null;
+      return categories.find(c => c.id === id || c.name === id) || null;
+    }
+
+    function getCategoryFullPath(id) {
+      const cat = getCategoryObj(id);
+      if (!cat) return id || t('opt_unset');
+      if (cat.parentId) {
+        const parentPath = getCategoryFullPath(cat.parentId);
+        return parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+      }
+      return cat.name;
+    }
+
+    function getCategoryAndDescendantIds(targetId) {
+      const ids = [];
+      function collect(id) {
+        ids.push(id);
+        const catObj = getCategoryObj(id);
+        const actualId = catObj ? catObj.id : id;
+        categories.forEach(c => {
+          if (c.parentId === actualId) {
+            collect(c.id);
+          }
+        });
+      }
+      if (targetId) collect(targetId);
+      return ids;
+    }
+
+    window.switchMainTab = function(tab) {
+      currentMainTab = tab;
+      const btnSearch = document.getElementById('tabBtn-search');
+      const btnManage = document.getElementById('tabBtn-manage');
+      const viewSearch = document.getElementById('view-search');
+      const viewManage = document.getElementById('view-manage');
+
+      if (tab === 'search') {
+        btnSearch.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm';
+        btnManage.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50';
+        viewSearch.classList.remove('hidden');
+        viewManage.classList.add('hidden');
+        renderSearchSubTabContent();
+      } else {
+        btnManage.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-indigo-600 text-white shadow-sm';
+        btnSearch.className = 'py-2.5 font-bold text-sm ui-btn text-center transition-colors bg-white text-slate-600 border border-slate-300 hover:bg-slate-50';
+        viewManage.classList.remove('hidden');
+        viewSearch.classList.add('hidden');
+      }
+    };
+
+    window.switchSearchSubTab = function(subTab) {
+      currentSearchSubTab = subTab;
+      const btnKeyword = document.getElementById('searchSubTabBtn-keyword');
+      const btnLocation = document.getElementById('searchSubTabBtn-location');
+      const controlsKeyword = document.getElementById('searchControls-keyword');
+      const controlsLocation = document.getElementById('searchControls-location');
+
+      if (subTab === 'keyword') {
+        btnKeyword.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+        btnLocation.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+        controlsKeyword.classList.remove('hidden');
+        controlsLocation.classList.add('hidden');
+      } else {
+        btnLocation.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+        btnKeyword.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+        controlsLocation.classList.remove('hidden');
+        controlsKeyword.classList.add('hidden');
+      }
+      renderSearchSubTabContent();
+    };
+
+    window.switchManageSubTab = function(sub) {
+      currentManageSubTab = sub;
+      ['item', 'category', 'tag'].forEach(s => {
+        const btn = document.getElementById(`subTabBtn-${s}`);
+        const form = document.getElementById(`form-${s}`);
+        if (s === sub) {
+          btn.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] bg-slate-800 text-white';
+          form.classList.remove('hidden');
+        } else {
+          btn.className = 'text-xs font-bold px-3 py-1.5 rounded-[6px] text-slate-600 hover:bg-slate-100';
+          form.classList.add('hidden');
+        }
+      });
+      renderRightColumnList();
+    };
+
+    window.changeTheme = function(theme, save = true) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('themeSelect').value = theme;
+      if (save) safeStorage.setItem('storage_theme', theme);
+    };
+
+    window.changeHub = function(hub) {
+      currentHub = hub;
+      safeStorage.setItem('storage_current_hub', hub);
+      loadAllData();
+      initUI();
+      showToast(t('toast_switch_hub', { hub: getHubDisplayName(hub) }), 'info');
+    };
+
+    window.addNewHub = function() {
+      const name = prompt(t('prompt_new_hub'));
+      if (name && name.trim()) {
+        const trimmed = name.trim();
+        if (!hubs.includes(trimmed)) {
+          hubs.push(trimmed);
+          currentHub = trimmed;
+          saveAllData();
+          initUI();
+          showToast(t('toast_create_hub', { hub: getHubDisplayName(trimmed) }), 'success');
+        }
+      }
+    };
+
+    window.deleteCurrentHub = function() {
+      if (hubs.length <= 1) {
+        showToast(t('toast_min_hub'), 'error');
+        return;
+      }
+      if (!confirm(t('confirm_delete_hub', { hub: getHubDisplayName(currentHub) }))) {
+        return;
+      }
+      const deletedHub = currentHub;
+      hubs = hubs.filter(h => h !== deletedHub);
+      currentHub = hubs[0];
+      
+      try {
+        localStorage.removeItem(`storage_items_${deletedHub}`);
+        localStorage.removeItem(`storage_areas_${deletedHub}`);
+      } catch (e) {}
+
+      saveAllData();
+      loadAllData();
+      initUI();
+      showToast(t('toast_delete_hub', { hub: getHubDisplayName(deletedHub) }), 'success');
+    };
+
+    function renderHubDropdown() {
+      const select = document.getElementById('hubSelect');
+      select.innerHTML = '';
+      hubs.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = getHubDisplayName(h);
+        if (h === currentHub) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function getAreaName(area) {
+      return areaNames[area] || '';
+    }
+
+    function formatShelfCode(area, slot) {
+      const name = getAreaName(area);
+      return name ? `${area}${slot}(${name})` : `${area}${slot}`;
+    }
+
+    function renderAreaSelectOptions() {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      const select = document.getElementById('itemAreaSelect');
+      select.innerHTML = '';
+      letters.forEach(char => {
+        const opt = document.createElement('option');
+        opt.value = char;
+        const name = getAreaName(char);
+        opt.textContent = name ? `${char} (${name})` : char;
+        select.appendChild(opt);
+      });
+      select.value = currentSelectedArea;
+      updateShelfCodePreview();
+    }
+
+    window.updateShelfCodePreview = function() {
+      const area = document.getElementById('itemAreaSelect').value || 'A';
+      const slot = document.getElementById('itemSlotInput').value || 1;
+      document.getElementById('shelfCodePreview').textContent = formatShelfCode(area, slot);
+    };
+
+    function renderCategorySelectOptions() {
+      const selects = [
+        { el: document.getElementById('itemCategorySelect'), defaultText: t('opt_unset') },
+        { el: document.getElementById('searchCategoryFilter'), defaultText: t('opt_all_categories') },
+        { el: document.getElementById('categoryParentSelect'), defaultText: t('opt_root_category') }
+      ];
+
+      selects.forEach(s => {
+        if (!s.el) return;
+        const cur = s.el.value;
+        s.el.innerHTML = `<option value="">${s.defaultText}</option>`;
+        
+        function appendOptions(parentId, depth) {
+          const children = categories.filter(c => c.parentId === parentId);
+          children.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
+            opt.textContent = prefix + c.name;
+            s.el.appendChild(opt);
+            appendOptions(c.id, depth + 1);
+          });
+        }
+        appendOptions('', 0);
+        if (cur) s.el.value = cur;
+      });
+    }
+
+    function renderTagFilterOptions() {
+      const sel = document.getElementById('searchTagFilter');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = `<option value="">${t('opt_all_tags')}</option>`;
+      tags.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+      if (cur) sel.value = cur;
+    }
+
+    function renderTagCheckboxes() {
+      const box = document.getElementById('itemTagCheckboxes');
+      box.innerHTML = '';
+      if (tags.length === 0) {
+        box.innerHTML = `<span class="text-[10px] text-slate-400">${t('tag_not_registered')}</span>`;
+        return;
+      }
+      tags.forEach(t => {
+        const label = document.createElement('label');
+        label.className = 'inline-flex items-center gap-1 text-[11px] bg-white border border-slate-200 px-1.5 py-0.5 rounded-[4px] cursor-pointer';
+        label.innerHTML = `<input type="checkbox" value="${escapeHtml(t)}" class="item-tag-cb rounded text-indigo-600"> <span>${escapeHtml(t)}</span>`;
+        box.appendChild(label);
+      });
+    }
+
+    window.editItem = function(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      editingItemId = id;
+      switchMainTab('manage');
+      switchManageSubTab('item');
+
+      document.getElementById('itemNameInput').value = item.name;
+      document.getElementById('itemAreaSelect').value = item.area;
+      document.getElementById('itemSlotInput').value = item.slot;
+      document.getElementById('itemCategorySelect').value = item.category || '';
+      document.getElementById('itemQuantityInput').value = item.quantity || 1;
+      document.getElementById('itemMemoInput').value = item.memo || '';
+
+      const tagCBs = document.querySelectorAll('.item-tag-cb');
+      tagCBs.forEach(cb => {
+        cb.checked = item.tags && item.tags.includes(cb.value);
+      });
+
+      updateShelfCodePreview();
+
+      document.getElementById('itemSubmitBtn').textContent = t('btn_update_item');
+      document.getElementById('itemCancelEditBtn').classList.remove('hidden');
+      document.getElementById('itemNameInput').focus();
+    };
+
+    window.cancelEditItem = function() {
+      editingItemId = null;
+      document.getElementById('itemNameInput').value = '';
+      document.getElementById('itemMemoInput').value = '';
+      document.getElementById('itemQuantityInput').value = 1;
+      document.getElementById('itemSlotInput').value = 1;
+      document.querySelectorAll('.item-tag-cb').forEach(cb => cb.checked = false);
+
+      document.getElementById('itemSubmitBtn').textContent = t('btn_register_item');
+      document.getElementById('itemCancelEditBtn').classList.add('hidden');
+      updateShelfCodePreview();
+    };
+
+    window.submitItemForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('itemNameInput').value.trim();
+      const area = document.getElementById('itemAreaSelect').value;
+      const slot = parseInt(document.getElementById('itemSlotInput').value) || 1;
+      const category = document.getElementById('itemCategorySelect').value;
+      const quantity = parseInt(document.getElementById('itemQuantityInput').value) || 1;
+      const memo = document.getElementById('itemMemoInput').value.trim();
+
+      const selectedTags = Array.from(document.querySelectorAll('.item-tag-cb:checked')).map(cb => cb.value);
+
+      if (!name) return;
+
+      if (editingItemId) {
+        const idx = items.findIndex(i => i.id === editingItemId);
+        if (idx !== -1) {
+          items[idx] = {
+            ...items[idx],
+            name: name,
+            area: area,
+            slot: slot,
+            category: category,
+            quantity: quantity,
+            tags: selectedTags,
+            memo: memo
+          };
+          saveAllData();
+          renderRightColumnList();
+          renderSearchSubTabContent();
+          showToast(t('toast_update_item', { name }), 'success');
+          cancelEditItem();
+        }
+      } else {
+        const item = {
+          id: Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+          name: name,
+          area: area,
+          slot: slot,
+          category: category,
+          quantity: quantity,
+          tags: selectedTags,
+          memo: memo,
+          createdAt: new Date().toISOString()
+        };
+
+        items.unshift(item);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(t('toast_register_item', { name, code: formatShelfCode(area, slot) }), 'success');
+        
+        document.getElementById('itemNameInput').value = '';
+        document.getElementById('itemMemoInput').value = '';
+        document.querySelectorAll('.item-tag-cb').forEach(cb => cb.checked = false);
+      }
+    };
+
+    window.submitTagForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('tagNameInput').value.trim();
+      if (name && !tags.includes(name)) {
+        tags.push(name);
+        saveAllData();
+        renderTagCheckboxes();
+        renderTagFilterOptions();
+        renderRightColumnList();
+        document.getElementById('tagNameInput').value = '';
+        showToast(t('toast_add_tag', { name }), 'success');
+      }
+    };
+
+    window.submitCategoryForm = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('categoryNameInput').value.trim();
+      const parentId = document.getElementById('categoryParentSelect').value || '';
+
+      if (name) {
+        const exists = categories.some(c => c.name === name && c.parentId === parentId);
+        if (!exists) {
+          const newCategory = {
+            id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+            name: name,
+            parentId: parentId
+          };
+          categories.push(newCategory);
+          saveAllData();
+          renderCategorySelectOptions();
+          renderRightColumnList();
+          document.getElementById('categoryNameInput').value = '';
+          showToast(t('toast_add_category', { name }), 'success');
+        }
+      }
+    };
+
+    window.setParentCategoryAndFocus = function(parentId) {
+      switchManageSubTab('category');
+      document.getElementById('categoryParentSelect').value = parentId;
+      document.getElementById('categoryNameInput').focus();
+    };
+
+    function renderRightColumnList() {
+      const container = document.getElementById('rightListContainer');
+      const title = document.getElementById('rightColumnTitle');
+      const badge = document.getElementById('registeredCountBadge');
+      container.innerHTML = '';
+
+      if (currentManageSubTab === 'item') {
+        title.textContent = t('title_registered_items');
+        badge.textContent = `${items.length}${t('badge_count')}`;
+
+        if (items.length === 0) {
+          container.innerHTML = `
+            <div class="p-6 text-center text-slate-400 space-y-2">
+              <p class="font-bold text-xs">${t('msg_no_items')}</p>
+              <p class="text-[11px]">${t('msg_no_items_sub')}</p>
+            </div>`;
+          return;
+        }
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-2.5 bg-slate-50 border border-slate-200 rounded-[6px] space-y-1 text-xs';
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <span class="ui-badge font-bold px-2 py-0.5 text-[11px]">
+                ${formatShelfCode(item.area, item.slot)}
+              </span>
+              <span class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded-[4px] text-slate-600">
+                ${escapeHtml(getCategoryFullPath(item.category))}
+              </span>
+            </div>
+            <div class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</div>
+            ${item.memo ? `<div class="text-[11px] text-slate-500 bg-white p-1.5 rounded-[4px] border border-slate-100">${escapeHtml(item.memo)}</div>` : ''}
+            <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+              <span>${t('qty_label')} ${item.quantity}</span>
+              <div class="flex gap-2">
+                <button onclick="deleteItem('${item.id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">${t('btn_delete')}</button>
+              </div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+      } else if (currentManageSubTab === 'tag') {
+        title.textContent = t('title_registered_tags');
+        badge.textContent = `${tags.length}${t('badge_count')}`;
+        if (tags.length === 0) {
+          container.innerHTML = `<p class="text-xs text-slate-400 p-4 text-center">${t('msg_no_tags')}</p>`;
+          return;
+        }
+        tags.forEach(tName => {
+          const div = document.createElement('div');
+          div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex justify-between items-center text-xs';
+          div.innerHTML = `<span>${escapeHtml(tName)}</span> <button onclick="deleteTag('${escapeHtml(tName)}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">${t('btn_delete')}</button>`;
+          container.appendChild(div);
+        });
+
+      } else if (currentManageSubTab === 'category') {
+        title.textContent = t('title_registered_categories');
+        badge.textContent = `${categories.length}${t('badge_count')}`;
+        if (categories.length === 0) {
+          container.innerHTML = `<p class="text-xs text-slate-400 p-4 text-center">${t('msg_no_categories')}</p>`;
+          return;
+        }
+
+        function renderCategoryTree(parentId, depth) {
+          const children = categories.filter(c => c.parentId === parentId);
+          children.forEach(c => {
+            const div = document.createElement('div');
+            const indentPx = depth * 16;
+            div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] flex justify-between items-center text-xs my-1';
+            div.style.marginLeft = `${indentPx}px`;
+            div.innerHTML = `
+              <div class="flex items-center gap-1.5">
+                ${depth > 0 ? '<span class="text-slate-400 font-bold">└</span>' : ''}
+                <span class="font-bold text-slate-800">${escapeHtml(c.name)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="setParentCategoryAndFocus('${c.id}')" class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-[4px]">${t('btn_add_sub_category')}</button>
+                <button onclick="deleteCategory('${c.id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-[4px]">${t('btn_delete')}</button>
+              </div>
+            `;
+            container.appendChild(div);
+            renderCategoryTree(c.id, depth + 1);
+          });
+        }
+        renderCategoryTree('', 0);
+      }
+    }
+
+    window.deleteItem = function(id) {
+      const idx = items.findIndex(i => i.id === id);
+      if (idx !== -1) {
+        lastDeletedItem = { item: items[idx], index: idx };
+        const name = items[idx].name;
+        items.splice(idx, 1);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(t('toast_delete_item', { name }), 'undo');
+      }
+    };
+
+    window.undoDelete = function() {
+      if (lastDeletedItem) {
+        items.splice(lastDeletedItem.index, 0, lastDeletedItem.item);
+        saveAllData();
+        renderRightColumnList();
+        renderSearchSubTabContent();
+        showToast(t('toast_restore_item', { name: lastDeletedItem.item.name }), 'success');
+        lastDeletedItem = null;
+      }
+    };
+
+    window.deleteTag = function(tName) {
+      tags = tags.filter(x => x !== tName);
+      saveAllData();
+      renderTagCheckboxes();
+      renderTagFilterOptions();
+      renderRightColumnList();
+    };
+
+    window.deleteCategory = function(id) {
+      const descendantIds = getCategoryAndDescendantIds(id);
+      categories = categories.filter(x => !descendantIds.includes(x.id));
+      saveAllData();
+      renderCategorySelectOptions();
+      renderRightColumnList();
+    };
+
+    function renderAlphabetButtons() {
+      const box = document.getElementById('alphabetButtons');
+      box.innerHTML = '';
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(char => {
+        const btn = document.createElement('button');
+        btn.onclick = () => selectAlphabetArea(char);
+        const isActive = char === currentSelectedArea;
+        btn.className = `px-2 py-1 font-bold text-xs rounded-[4px] border ${isActive ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`;
+        btn.textContent = char;
+        box.appendChild(btn);
+      });
+    }
+
+    function selectAlphabetArea(char) {
+      currentSelectedArea = char;
+      renderAlphabetButtons();
+      updateAreaNameInput();
+      renderSearchSubTabContent();
+    }
+
+    function updateAreaNameInput() {
+      document.getElementById('selectedAreaBadge').textContent = `${t('area_label')} ${currentSelectedArea}`;
+      document.getElementById('areaNameInput').value = getAreaName(currentSelectedArea);
+    }
+
+    window.saveCurrentAreaName = function() {
+      const val = document.getElementById('areaNameInput').value.trim();
+      if (val) {
+        areaNames[currentSelectedArea] = val;
+      } else {
+        delete areaNames[currentSelectedArea];
+      }
+      saveAllData();
+      renderAreaSelectOptions();
+      updateAreaNameInput();
+      renderSearchSubTabContent();
+      showToast(t('toast_save_area', { area: currentSelectedArea }), 'success');
+    };
+
+    function normalizeKana(str) {
+      if (!str) return '';
+      return str.toLowerCase().replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+    }
+
+    window.clearSearchFilters = function() {
+      document.getElementById('keywordSearchInput').value = '';
+      document.getElementById('searchCategoryFilter').value = '';
+      document.getElementById('searchTagFilter').value = '';
+      document.getElementById('recentOnlyFilter').checked = false;
+      renderSearchSubTabContent();
+    };
+
+    function renderSearchSubTabContent() {
+      const keywordResultsContainer = document.getElementById('keywordResultsContainer');
+      const gridContainer = document.getElementById('shelfGridContainer');
+      const sectionTitle = document.getElementById('searchSectionTitle');
+      const sectionSubText = document.getElementById('searchSectionSubText');
+
+      if (currentSearchSubTab === 'keyword') {
+        gridContainer.classList.add('hidden');
+        keywordResultsContainer.classList.remove('hidden');
+
+        renderKeywordSearchResults();
+
+      } else if (currentSearchSubTab === 'location') {
+        keywordResultsContainer.classList.add('hidden');
+        gridContainer.classList.remove('hidden');
+
+        sectionTitle.textContent = t('grid_title', { area: currentSelectedArea, name: getAreaName(currentSelectedArea) || t('unnamed_area') });
+        sectionSubText.textContent = t('grid_sub_title');
+
+        gridContainer.innerHTML = '';
+        const slotCounts = {};
+        items.forEach(i => {
+          if (i.area === currentSelectedArea) {
+            slotCounts[i.slot] = (slotCounts[i.slot] || 0) + 1;
+          }
+        });
+
+        for (let s = 1; s <= 99; s++) {
+          const count = slotCounts[s] || 0;
+          const btn = document.createElement('button');
+          btn.id = `cell-${currentSelectedArea}-${s}`;
+          btn.onclick = () => openShelfActionModal(currentSelectedArea, s);
+
+          let colorStyle = 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100';
+          if (count === 1) colorStyle = 'bg-amber-100 border-amber-300 text-amber-900 font-bold';
+          if (count >= 2) colorStyle = 'bg-amber-500 border-amber-600 text-white font-bold';
+
+          btn.className = `p-1.5 border text-xs grid-cell-btn flex flex-col items-center justify-center min-h-[42px] transition-all ${colorStyle}`;
+          btn.innerHTML = `
+            <span class="text-[9px] opacity-70">${s}</span>
+            ${count > 0 ? `<span class="text-[11px] font-bold">${count}</span>` : ''}
+          `;
+          gridContainer.appendChild(btn);
+        }
+      }
+    }
+
+    function renderKeywordSearchResults() {
+      const query = normalizeKana(document.getElementById('keywordSearchInput').value.trim());
+      const catFilter = document.getElementById('searchCategoryFilter').value;
+      const tagFilter = document.getElementById('searchTagFilter').value;
+      const recentOnly = document.getElementById('recentOnlyFilter').checked;
+
+      const container = document.getElementById('keywordResultsContainer');
+      const sectionTitle = document.getElementById('searchSectionTitle');
+      const sectionSubText = document.getElementById('searchSectionSubText');
+
+      container.innerHTML = '';
+
+      const validCatIds = catFilter ? getCategoryAndDescendantIds(catFilter) : [];
+
+      let filtered = items.filter(i => {
+        const matchName = normalizeKana(i.name).includes(query);
+        const matchMemo = normalizeKana(i.memo).includes(query);
+        const matchCode = normalizeKana(`${i.area}${i.slot}`).includes(query);
+        const matchAreaName = normalizeKana(getAreaName(i.area)).includes(query);
+        const matchQuery = !query || matchName || matchMemo || matchCode || matchAreaName;
+
+        const matchCat = !catFilter || validCatIds.includes(i.category);
+        const matchTag = !tagFilter || (i.tags && i.tags.includes(tagFilter));
+
+        let matchRecent = true;
+        if (recentOnly) {
+          const diffMs = new Date() - new Date(i.createdAt);
+          matchRecent = diffMs < (7 * 24 * 60 * 60 * 1000);
+        }
+
+        return matchQuery && matchCat && matchTag && matchRecent;
+      });
+
+      sectionTitle.textContent = t('grid_keyword_title');
+      sectionSubText.textContent = t('grid_keyword_sub', { count: filtered.length });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center text-slate-400 space-y-1">
+            <p class="font-bold text-xs">${t('msg_no_matched_items')}</p>
+            <p class="text-[11px]">${t('msg_no_matched_items_sub')}</p>
+          </div>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-slate-50 border border-slate-200 rounded-[6px] space-y-1 text-xs';
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="ui-badge font-bold px-2 py-0.5 text-[11px]">
+              ${formatShelfCode(item.area, item.slot)}
+            </span>
+            <div class="flex gap-1">
+              <button onclick="editItem('${item.id}')" class="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-[4px] font-bold hover:bg-amber-100">
+                ${t('btn_edit')}
+              </button>
+              <button onclick="highlightCellOnGrid('${item.area}', ${item.slot})" class="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded-[4px] font-bold">
+                ${t('btn_show_location')}
+              </button>
+            </div>
+          </div>
+          <div class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</div>
+          ${item.memo ? `<div class="text-[11px] text-slate-500 bg-white p-1 rounded-[4px] border border-slate-100">${escapeHtml(item.memo)}</div>` : ''}
+          ${item.tags && item.tags.length > 0 ? `<div class="flex flex-wrap gap-1 pt-0.5">${item.tags.map(tName => `<span class="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-[3px]">${escapeHtml(tName)}</span>`).join('')}</div>` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.highlightCellOnGrid = function(area, slot) {
+      switchSearchSubTab('location');
+      selectAlphabetArea(area);
+      setTimeout(() => {
+        const cell = document.getElementById(`cell-${area}-${slot}`);
+        if (cell) {
+          cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cell.classList.add('cell-flash');
+          setTimeout(() => cell.classList.remove('cell-flash'), 2000);
+        }
+      }, 100);
+    };
+
+    function openShelfActionModal(area, slot) {
+      activeTargetSlot = { area, slot };
+      document.getElementById('shelfActionTitle').textContent = `${t('lbl_shelf_code_preview')} ${formatShelfCode(area, slot)}`;
+      openModal('modalShelfAction');
+    }
+
+    window.actionAddItemToShelf = function() {
+      closeModal('modalShelfAction');
+      if (!activeTargetSlot) return;
+      switchMainTab('manage');
+      switchManageSubTab('item');
+      currentSelectedArea = activeTargetSlot.area;
+      renderAreaSelectOptions();
+      document.getElementById('itemSlotInput').value = activeTargetSlot.slot;
+      updateShelfCodePreview();
+      document.getElementById('itemNameInput').focus();
+    };
+
+    window.actionShowShelfItems = function() {
+      closeModal('modalShelfAction');
+      if (!activeTargetSlot) return;
+      const { area, slot } = activeTargetSlot;
+      const listContainer = document.getElementById('shelfItemsList');
+      document.getElementById('shelfItemsTitle').textContent = t('shelf_items_title_format', { code: formatShelfCode(area, slot) });
+      listContainer.innerHTML = '';
+
+      const matched = items.filter(i => i.area === area && i.slot === slot);
+      if (matched.length === 0) {
+        listContainer.innerHTML = `<p class="text-xs text-slate-400 p-4 text-center">${t('msg_no_stored_items')}</p>`;
+      } else {
+        matched.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-2 bg-slate-50 border border-slate-200 rounded-[6px] text-xs space-y-1';
+          div.innerHTML = `
+            <div class="font-bold text-slate-800">${escapeHtml(item.name)}</div>
+            <div class="text-[10px] text-slate-500">${t('qty_label')} ${item.quantity} | ${t('cat_label')} ${escapeHtml(getCategoryFullPath(item.category))}</div>
+          `;
+          listContainer.appendChild(div);
+        });
+      }
+      openModal('modalShelfItems');
+    };
+
+    window.openResetModal = function() {
+      document.getElementById('resetInputShield').value = '';
+      document.getElementById('resetExecuteBtn').disabled = true;
+      document.getElementById('resetConfirmText').innerHTML = t('confirm_reset_text', { hub: getHubDisplayName(currentHub) });
+      openModal('modalResetConfirm');
+    };
+
+    window.checkResetShieldInput = function() {
+      const val = document.getElementById('resetInputShield').value.trim();
+      document.getElementById('resetExecuteBtn').disabled = (val !== t('ph_reset_confirm'));
+    };
+
+    window.executeHubReset = function() {
+      items = [];
+      areaNames = {};
+      saveAllData();
+      initUI();
+      closeModal('modalResetConfirm');
+      showToast(t('toast_reset_hub', { hub: getHubDisplayName(currentHub) }), 'success');
+    };
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); };
+
+    function escapeCSVField(field) {
+      if (field === null || field === undefined) return '""';
+      const str = String(field);
+      if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return '"' + str + '"';
+    }
+
+    function parseCSV(text) {
+      const lines = [];
+      let row = [];
+      let inQuotes = false;
+      let field = '';
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const nextC = text[i + 1];
+
+        if (inQuotes) {
+          if (c === '"') {
+            if (nextC === '"') {
+              field += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            field += c;
+          }
+        } else {
+          if (c === '"') {
+            inQuotes = true;
+          } else if (c === ',') {
+            row.push(field);
+            field = '';
+          } else if (c === '\r') {
+          } else if (c === '\n') {
+            row.push(field);
+            lines.push(row);
+            row = [];
+            field = '';
+          } else {
+            field += c;
+          }
+        }
+      }
+      if (field !== '' || row.length > 0) {
+        row.push(field);
+        lines.push(row);
+      }
+      return lines;
+    }
+
+    function ensureCategoryPath(pathStr) {
+      if (!pathStr) return '';
+      const parts = pathStr.split(/[>＞/]/).map(p => p.trim()).filter(p => p.length > 0);
+      let parentId = '';
+      let currentCatObj = null;
+
+      for (let i = 0; i < parts.length; i++) {
+        const name = parts[i];
+        let found = categories.find(c => c.name === name && c.parentId === parentId);
+
+        if (!found) {
+          found = {
+            id: 'cat_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+            name: name,
+            parentId: parentId
+          };
+          categories.push(found);
+        }
+        parentId = found.id;
+        currentCatObj = found;
+      }
+
+      return currentCatObj ? currentCatObj.id : '';
+    }
+
+    window.exportCSV = function() {
+      const headers = ['ID', '物品名', 'エリア', '棚番号', 'カテゴリ', '数量', 'タグ', 'メモ', '作成日時'];
+      let csvRows = [headers.map(escapeCSVField).join(',')];
+
+      items.forEach(item => {
+        const catPath = getCategoryFullPath(item.category);
+        const tagStr = (item.tags || []).join(', ');
+        const row = [
+          item.id || '',
+          item.name || '',
+          item.area || '',
+          item.slot || 1,
+          catPath || '',
+          item.quantity || 1,
+          tagStr,
+          item.memo || '',
+          item.createdAt || ''
+        ];
+        csvRows.push(row.map(escapeCSVField).join(','));
+      });
+
+      const csvString = '\uFEFF' + csvRows.join('\r\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `storage_items_${currentHub}_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      showToast(t('toast_save_csv'), 'success');
+    };
+
+    window.importCSV = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const text = evt.target.result;
+          const parsedRows = parseCSV(text);
+          if (parsedRows.length < 2) {
+            showToast(t('toast_no_csv'), 'error');
+            return;
+          }
+
+          const headers = parsedRows[0].map(h => h.trim().replace(/^"|"$/g, ''));
+          const idIdx = headers.indexOf('ID');
+          const nameIdx = headers.indexOf('物品名');
+          const areaIdx = headers.indexOf('エリア');
+          const slotIdx = headers.indexOf('棚番号');
+          const catIdx = headers.indexOf('カテゴリ');
+          const qtyIdx = headers.indexOf('数量');
+          const tagIdx = headers.indexOf('タグ');
+          const memoIdx = headers.indexOf('メモ');
+          const createdIdx = headers.indexOf('作成日時');
+
+          if (nameIdx === -1 || areaIdx === -1 || slotIdx === -1) {
+            showToast(t('toast_csv_header_err'), 'error');
+            return;
+          }
+
+          let newItems = [];
+          for (let i = 1; i < parsedRows.length; i++) {
+            const row = parsedRows[i];
+            if (row.length < 3) continue;
+
+            const name = (row[nameIdx] || '').trim();
+            if (!name) continue;
+
+            const area = (row[areaIdx] || 'A').trim().toUpperCase();
+            const slot = parseInt(row[slotIdx]) || 1;
+            const qty = qtyIdx !== -1 ? (parseInt(row[qtyIdx]) || 1) : 1;
+            const memo = memoIdx !== -1 ? (row[memoIdx] || '').trim() : '';
+            const rawCat = catIdx !== -1 ? (row[catIdx] || '').trim() : '';
+            const rawTags = tagIdx !== -1 ? (row[tagIdx] || '').trim() : '';
+            const created = createdIdx !== -1 && row[createdIdx] ? row[createdIdx].trim() : new Date().toISOString();
+            const id = idIdx !== -1 && row[idIdx] ? row[idIdx].trim() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 5));
+
+            let categoryId = '';
+            if (rawCat) {
+              categoryId = ensureCategoryPath(rawCat);
+            }
+
+            let tagList = [];
+            if (rawTags) {
+              tagList = rawTags.split(/[,;|]/).map(tName => tName.trim()).filter(tName => tName.length > 0);
+              tagList.forEach(tName => {
+                if (!tags.includes(tName)) {
+                  tags.push(tName);
+                }
+              });
+            }
+
+            newItems.push({
+              id: id,
+              name: name,
+              area: area,
+              slot: slot,
+              category: categoryId,
+              quantity: qty,
+              tags: tagList,
+              memo: memo,
+              createdAt: created
+            });
+          }
+
+          if (newItems.length > 0) {
+            items = newItems;
+            saveAllData();
+            initUI();
+            showToast(t('toast_restore_csv', { count: newItems.length }), 'success');
+          } else {
+            showToast(t('toast_no_import_data'), 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast(t('toast_import_err'), 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto ui-card p-2.5 flex items-center justify-between gap-2 shadow-md border-l-4 text-xs font-bold text-slate-800';
+
+      if (type === 'success') toast.classList.add('border-l-emerald-500');
+      else if (type === 'error') toast.classList.add('border-l-red-500');
+      else if (type === 'undo') toast.classList.add('border-l-amber-500');
+      else toast.classList.add('border-l-indigo-500');
+
+      toast.innerHTML = `
+        <span>${escapeHtml(msg)}</span>
+        ${type === 'undo' ? `<button onclick="undoDelete(); this.parentElement.remove();" class="px-2 py-0.5 bg-amber-500 text-white rounded-[4px] text-[10px]">${t('msg_undo')}</button>` : ''}
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 200);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+  </script>
+</body>
+</html>
