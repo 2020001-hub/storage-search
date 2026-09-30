@@ -145,10 +145,10 @@
 <body class="flex flex-col h-screen p-3 md:p-4 gap-3">
 
   <!-- 初回言語選択モーダル -->
-  <div id="modalInitLanguage" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+  <div id="modalInitLanguage" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4">
     <div class="ui-card max-w-xs w-full p-5 space-y-4 shadow-xl text-center">
       <h3 class="text-sm font-bold text-slate-800">Language / 言語 / 语言</h3>
-      <p class="text-xs text-slate-600">Select Language / 言語を選択してください / 请選択语言</p>
+      <p class="text-xs text-slate-600">Select Language / 言語を選択してください / 请选择语言</p>
       <div class="space-y-2 pt-2">
         <button onclick="setInitialLanguage('ja')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-[6px]">日本語</button>
         <button onclick="setInitialLanguage('en')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 rounded-[6px]">English</button>
@@ -913,7 +913,6 @@
       if (savedLang) {
         currentLang = savedLang;
         document.getElementById('langSelect').value = savedLang;
-        closeModal('modalInitLanguage');
         applyLanguageToDOM();
       } else {
         openModal('modalInitLanguage');
